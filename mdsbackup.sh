@@ -17,9 +17,8 @@ SERVER=""
 USERNAME=""
 DIRECTORY=""
 
-# Liste von Management Domains erstellen. Achtung: Das gute alte "MDSVERUTIL AllCMAs" funktioniert an
-# der Stelle nicht, da das Backup via API die Domain als Argument braucht. Alles neu macht der Mai.
-DMLIST=`mgmt_cli -r true show domains | grep -B 1 'type: "domain"' | grep name | awk '{print $2}' | tr -d '"'`
+# Liste von Management Domains erstellen
+DMLIST=`$MDSVERUTIL AllCMAs`
 
 TMPDIR=/var/log/tmp
 BKPDIR=/var/log/tmp/backup
@@ -56,12 +55,13 @@ if [[ "$BKPDAY" = "Sun" ]]; then
    rm system.tar 
    rm home.tar
 else
-   # Wochentags nur Managemennt Domains sichern (sk156072) 
-   for i in $DMLIST; do
-       # Nonprintables entfernen, sonst nix gut
-       # Weiss der Henker was für kranke Sonderzeichen ein mgmt_cli zurück gibt und vor allem warum... :-/
-       DOM=`tr -dc '[[:print:]]' <<< "$i"`
-       mgmt_cli -r true backup-domain domain $DOM file-path $BKPDIR/$DOM-backup.tgz
+   # Wochentags nur Management Domains sichern
+   for DM in $DMLIST; do
+      echo "Domain $DM wird gesichert"
+      mdsstop_customer $DM
+      mdsenv $DM
+      $FWDIR/bin/upgrade_tools/migrate export -n $BKPDIR/$DM
+      mdsstart_customer $DM
    done
 fi
 
