@@ -2,14 +2,14 @@
 
 # Check Point MDM Backup
 # 
-# Version 0.1
+# Version 0.2
 # 
 # dj0Nz (djonz@posteo.de)
 # April 2021
 #
 # Lizenz siehe https://unlicense.org/ 
 
-# Check Point Umgebungsvariablen. Weiss nicht, ob man die noch braucht, schaden aber nicht...
+# Check Point Umgebungsvariablen laden
 . /opt/CPshared/5.0/tmp/.CPprofile.sh
 
 # Server, User und Verzeichnis für SCP Upload. Wenn nicht gesetzt, liegen die Backups in $BKPDIR
