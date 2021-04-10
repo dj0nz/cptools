@@ -1,18 +1,22 @@
 #!/bin/bash
 
 # Check Point MDM Backup
-# 
-# Version 0.2
+#
+# Skript auf MDM System kopieren, ausführbar machen und per Clish täglich einplanen:
+# Beispiel: add cron job Backup command /home/admin/mdsback.sh recurrence daily time 01:30
+# Aufpassen: Die Backup Files in $TMPDIR im Auge behalten, wenn kein Scp Server konfiguriert ist,
+# sonst liegen da irgendwann mal ~365 Backup Files rum und die Platte ist voll. Siehe Logwork Orange.
 # 
 # dj0Nz (djonz@posteo.de)
 # April 2021
+# Version 0.3
 #
 # Lizenz siehe https://unlicense.org/ 
 
 # Check Point Umgebungsvariablen laden
 . /opt/CPshared/5.0/tmp/.CPprofile.sh
 
-# Server, User und Verzeichnis für SCP Upload. Wenn nicht gesetzt, liegen die Backups in $BKPDIR
+# Server, User und Verzeichnis für SCP Upload. Wenn nicht gesetzt, liegen die Backups in $TMPDIR
 SERVER=""
 USERNAME=""
 DIRECTORY=""
