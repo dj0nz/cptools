@@ -9,7 +9,7 @@
 # 
 # dj0Nz (djonz@posteo.de)
 # April 2021
-# Version 0.3
+# Version 0.4
 #
 # Lizenz siehe https://unlicense.org/ 
 
@@ -46,15 +46,37 @@ cd $TMPDIR
 if [[ "$BKPDAY" = "Sun" ]]; then
    mds_backup -b -l -d $BKPDIR
    # Systenmzeugs sichern: Versionsinformationen, Gaia Config (Interfaces, Routen etc.), Skripte in /home/admin
-   fwm ver -f ver.txt
+   echo "Checkpoint Version Information" >> ver.txt
+   echo "---" >> ver.txt
+   fwm ver >> ver.txt
    clish -c "lock database override"
+   echo "---" >> ver.txt
    clish -c "show version all" >> ver.txt
+   echo "---" >> ver.txt
    cpinfo -y all >> ver.txt
+   echo "---" >> ver.txt
+   mdsstat >> ver.txt
    clish -c "save configuration $HOSTNAME-config"
+   echo "System Information" >> sysinfo.txt
+   echo "---" >> sysinfo.txt
+   cat /proc/meminfo >> sysinfo.txt
+   echo "---" >> sysinfo.txt
+   cat /proc/cpuinfo >> sysinfo.txt
+   echo "---" >> sysinfo.txt
+   fdisk -l >> sysinfo.txt
+   echo "---" >> sysinfo.txt
+   df -h >> sysinfo.txt
+   echo "---" >> sysinfo.txt
+   ifconfig -a >> sysinfo.txt
+   echo "---" >> sysinfo.txt
+   netstat -rn >> sysinfo.txt
+   echo "---" >> sysinfo.txt
+   uname -a >> sysinfo.txt
    tar cvf system.tar /etc/*
    tar cvf home.tar /home/*
-   tar czf $BKPDIR/$HOSTNAME-System-Backup.tgz ver.txt $HOSTNAME-config system.tar home.tar
+   tar czf $BKPDIR/$HOSTNAME-System-Backup.tgz ver.txt sysinfo.txt $HOSTNAME-config system.tar home.tar
    rm ver.txt
+   rm sysinfo.txt
    rm $HOSTNAME-config
    rm system.tar 
    rm home.tar
