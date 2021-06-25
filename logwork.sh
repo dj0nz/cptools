@@ -1,42 +1,38 @@
 #!/bin/bash
 
-# LOGWORK ORANGE - disk space desaster prevention
-# Delete Checkpoint firewall logfiles older than $RETIME days on SmartCenter
+# Firewall Logfile Cleanup
 #
-# dj0Nz
-# June 2017
+# Michael Goessmann Matos, NTT
+# Maerz 2021
 
-# variables
-ORANGE=/var/log/logwork.log
-RETIME="365"
-TMPDIR=/var/log/tmp/logwork
+# Variablen
+RETIME="300"
+CP_VERSION=R80.40
+EXT=log
+LOGFILE=/var/log/orange.log
 
-# load Checkpoint enviroment
-. /opt/CPshared/5.0/tmp/.CPprofile.sh
+exec > $LOGFILE 2>&1
 
-exec > $ORANGE 2>&1
-
-echo "---------------------------------------------------------" 
-echo "[`\date`] Logwork Orange START" 
-
-if [ -d $TMPDIR ]; then
-   rm -r $TMPDIR
-fi
-mkdir $TMPDIR
-cd $TMPDIR
-
-NUM_FILES=`/usr/bin/find $FWDIR/log/ -type f -iname *\.log -mtime +$RETIME -print | wc -l` 
+NUM_FILES=`/usr/bin/find /var/log/opt/CPsuite-$CP_VERSION/fw1/log/ -type f -name "*.$EXT" -mtime +$RETIME -print | wc -l`
+DISK_SPACE=`df -h | grep log | awk '{print $4}'`
 
 if [ $NUM_FILES -gt 0 ]; then
-   echo "[`\date`] Removing files older than $RETIME days..." 
+   echo "Entferne alte Check Point Logfiles"
+   echo ""
+   echo "Anzahl Dateien:    $NUM_FILES"
+   echo "Version:           $CP_VERSION"
+   echo "Retention Time:    $RETIME Tage"
+   echo "Plattenplatz Alt:  $DISK_SPACE"
    for EXT in logptr log log_stats logaccount_ptr loginitial_ptr; do
        echo ""
-       echo "Removing *.$EXT files"
-       /usr/bin/find $FWDIR/log/ -type f -iname *\.$EXT -mtime +$RETIME -print | xargs rm 
+       echo "Entferne *.$EXT Dateien"
+       /usr/bin/find /var/log/opt/CPsuite-$CP_VERSION/fw1/log/ -type f -name "*.$EXT" -mtime +$RETIME -print -exec rm {} \;
    done
+   DISK_SPACE=`df -h | grep log | awk '{print $4}'`
+   echo ""
+   echo "Plattenplatz Neu:  $DISK_SPACE"
 else
-   echo "Nothing to remove yet..." 
+   echo "Nichts zu loeschen..."
 fi
 
 echo ""
-echo "[`\date`] Logwork Orange END"
