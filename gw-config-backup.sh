@@ -4,7 +4,7 @@
 #
 # Skript nach /home/admin kopieren & chmod 700
 # Die Backups landen dann in dem in $CFG_PATH definierten Verzeichnis
-# Einplanen mit add cron job Modulebackup command "/home/admin/module-backup.sh" recurrence weekly days 0 time 23:30
+# Einplanen mit add cron job Modulebackup command "/home/admin/gw-config-backup.sh" recurrence weekly days 0 time 23:30
 # Voraussetzung: Für das zu sichernde Gateway muss bereits ein Hosts-Eintrag existieren.
 # Siehe dazu auch add-gw-hostnames.sh
 # 
