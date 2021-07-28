@@ -2,7 +2,7 @@
 
 # create hosts entries for managed gateways
 # run on check point management server
-# dj0Nz nov 2020
+# dj0Nz mar 2021
 
 # not sure if this is needed any more...
 . /opt/CPshared/5.0/tmp/.CPprofile.sh
