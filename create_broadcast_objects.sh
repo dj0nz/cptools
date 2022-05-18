@@ -28,10 +28,13 @@ echo ""
 echo ""
 echo "Adding firewall local broadcast addresses to new group $GROUP. Patience please."
 
-# Check if group exists, add it if not. No output on group creation. Bug?
-BRGOUP=`mgmt_cli show groups filter "$GROUP" limit 500 --format json -s id.txt | jq -r '.objects[]|."name"'`
+# Check if group exists, add it if not.
+BRGROUP=`mgmt_cli -r true show groups filter "$GROUP" --format json | jq -r '.objects[]|."name"'`
 if [[ $BRGROUP = "" ]]; then
+   echo "create group object $GROUP" >> $LOGFILE 2>&1
    mgmt_cli add group name "$GROUP" -s id.txt >> $LOGFILE 2>&1
+else
+   echo "group object $GROUP already exists." >> $LOGFILE 2>&1
 fi
 
 # Get broadcast addresses from firewall
