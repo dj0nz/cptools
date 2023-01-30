@@ -6,7 +6,7 @@
 # Script can be run from any system with a bash shell that is authorized for API access to both (Check Point / Infoblox) management systems.
 #
 # Software needed locally:
-# - gpg to (optionally) store API key and credentials in a safe manner
+# - gpg to (optionally) store API key and credentials in a safe(er) manner
 # - jq to parse Json outputs
 # - curl for http access
 #
@@ -28,6 +28,7 @@
 # https://blog.nem.ec/code-snippets/jq-ignore-nulls/
 # https://devconnected.com/how-to-encrypt-file-on-linux/
 # https://wiki.ubuntuusers.de/GPG-Agent/
+# https://research.kudelskisecurity.com/2022/06/16/gpg-memory-forensics/
 #
 # MGO/NTT Jan 2023
 
@@ -48,6 +49,8 @@ GRID_CONTAINERS="10.1.0.0/16 10.2.0.0/16"
 CP_MGMT="192.168.1.11"
 # Group name in Check Point database that should contain the networks we create
 NET_GROUP="USA_Networks"
+# Timediff in seconds, after that a publish to Checkpoint Management is considered "failed"
+PUBLISH_TIMEOUT=10
 # Regex to check for valid IP-Address (Source link in header)
 IPREGEX="(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)"
 
@@ -143,18 +146,17 @@ while true; do
                     echo "Something unexpected happened during publish. Check logs."
                 else
                     echo "Publishing..."
-                    # Wait a second, then query task status
-                    sleep 1
-                    TASK_STATE=`curl -X POST -H "content-Type: application/json" -H "X-chkp-sid:$SESSION_ID" --silent -k https://$CP_MGMT/web_api/show-task -d '{ "task-id" : "'$TASK_ID'" }' | jq -r '.tasks[]|.status'`
-                    # Second try, if first is not finished yet
-                    if [[ ! "$TASK_STATE" = "succeeded" ]]; then
-                        sleep 2
+                    START_TIME=`date +%s`
+                    TIME_DIFF=0
+                    TASK_STATE="init"
+                    while [[ $TIME_DIFF -lt $PUBLISH_TIMEOUT && ! "$TASK_STATE" = "succeeded" ]]; do
                         TASK_STATE=`curl -X POST -H "content-Type: application/json" -H "X-chkp-sid:$SESSION_ID" --silent -k https://$CP_MGMT/web_api/show-task -d '{ "task-id" : "'$TASK_ID'" }' | jq -r '.tasks[]|.status'`
-                        if [[ ! "$TASK_STATE" = "succeeded" ]]; then
-                            echo "Something unexpected happened during publish. Check logs."
-                        else
-                            echo "Publish $TASK_STATE"
-                        fi
+                        sleep 1
+                        CURR_TIME=`date +%s`
+                        TIME_DIFF=$[$CURR_TIME - $START_TIME]
+                    done
+                    if [[ ! "$TASK_STATE" = "succeeded" ]]; then
+                        echo "Something unexpected happened during publish. Publish state: $TASK_STATE - Check logs."
                     else
                         echo "Publish $TASK_STATE"
                     fi
