@@ -3,7 +3,15 @@
 # Purpose:
 # Read networks from Infoblox IPAM ("$GRID_IP") network containers ("$GRID_CONTAINERS"), search for comment fields that start with $PATTERN
 # Store filtered networks and comments to a file ("$OUTPUT") and use this file to create the corresponding objects in the Check Point database.
-# Script can be run from any system with a bash shell that is authorized for API access to both (Check Point / Infoblox) management systems.
+#
+# This script can be run from any system with a bash shell that is authorized for API access to both (Check Point / Infoblox) management systems.
+# It is NOT intended to be run unattended, because it needs user input (passphrase to decrypt Checkpoint API key and Grid credentials).
+# Of course, these files must have been encrypted beforehand. Don't store them unencrypted!
+#
+# One more thing: You don't need to be root to run this script.
+#
+# "Work safe, work smart. Your future depends on it."
+# -- Black Mesa Announcement System
 #
 # Software needed locally:
 # - gpg to (optionally) store API key and credentials in a safe(er) manner
@@ -40,7 +48,7 @@ SESSION_INFO=session-info.txt
 # Write output to file instead of array in order to be able to check it if something goes wrong
 OUTPUT=/tmp/netlist.csv
 # Search term for the comments field of an Infoblox network container
-PATTERN="US"
+PATTERN="DE"
 # IP address of the Infoblox Grid
 GRID_IP="192.168.1.8"
 # Look for networks in these containers. Note: This will not search in child containers!
@@ -48,7 +56,7 @@ GRID_CONTAINERS="10.1.0.0/16 10.2.0.0/16"
 # Check Point Management Server IP
 CP_MGMT="192.168.1.11"
 # Group name in Check Point database that should contain the networks we create
-NET_GROUP="USA_Networks"
+NET_GROUP="DE_Networks"
 # Timediff in seconds, after that a publish to Checkpoint Management is considered "failed"
 PUBLISH_TIMEOUT=10
 # Regex to check for valid IP-Address (Source link in header)
@@ -78,9 +86,15 @@ fi
 touch $OUTPUT
 cat /dev/null > $OUTPUT
 
+echo ""
+echo "Please enter gpg passphrase(s) when prompted to do so."
+read -p "Press any key to continue... " -n1
+echo ""
+
 # Read networks from Infoblox Grid containers using WAPI, search for Strings that start with $PATTERN and write networks and comments to $OUTPUT file
 # First: decrypt GRID credentials, format of the credentials file see curl documentation (link in header section)
 gpg -o grid-creds.txt -qd $GRID_CREDS
+echo "Getting networks from Infoblox Grid..."
 for i in $GRID_CONTAINERS; do curl -k --silent --netrc-file grid-creds.txt https://$GRID_IP/wapi/v2.10/network?network_container=$i | jq --arg PATTERN "$PATTERN" -r '.[]| select(.comment | . and startswith($PATTERN)) | [.["comment"], .["network"]] | @csv' | tr -d '"'; done >> $OUTPUT
 rm grid-creds.txt
 
@@ -117,6 +131,9 @@ if [[ ! "$CHECK_GROUP" = "$NET_GROUP" ]]; then
 fi
 
 # Loop through networks and create missing
+echo ""
+echo "Creating networks in Checkpoint database..."
+echo ""
 while read line; do
     COMMENT=`echo $line | awk -F , '{print $1}'`
     # Networks are always /24
@@ -137,9 +154,10 @@ while read line; do
     fi
 done < $OUTPUT
 
-# Kindly ask before publishing
+echo ""
+# Ask before publishing
 while true; do
-    read -p "Publish changes? " yn
+    read -p "Publish changes [Y/N]? " yn
     case $yn in
         [Yy]* ) TASK_ID=`curl -X POST -H "content-Type: application/json" -H "X-chkp-sid:$SESSION_ID" --silent -k https://$CP_MGMT/web_api/publish -d '{ }' | jq -r '."task-id"'`
                 if [[ "$TASK_ID" = "" ]]; then
@@ -171,7 +189,7 @@ while true; do
                 fi
                 break
                 ;;
-        * ) echo "Please answer yes or no.";;
+        * ) echo "Please answer [y]es or [n]o.";;
     esac
 done
 
