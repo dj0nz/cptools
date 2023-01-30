@@ -3,15 +3,23 @@
 CP_MGMT=192.168.1.11
 CP_API_KEY_ENC=api-key.gpg
 SESSION_INFO=session-info.txt
+PUBLISH_TIMEOUT=10
 
 API_KEY=`gpg -qd $CP_API_KEY_ENC`
 
 curl -X POST -H "content-Type: application/json" --silent -k https://$CP_MGMT/web_api/login -d '{ "api-key" : "'$API_KEY'" }' > $SESSION_INFO
 SESSION_ID=`cat $SESSION_INFO | jq -r .sid`
 
-NETWORK="10.3.0.0"
+NETWORK="10.8.0.0"
 NET_GROUP="Test-Network"
 COMMENT="Just a test network"
+
+echo "Checking network group"
+CHECK_GROUP=`curl -X POST -H "content-Type: application/json" -H "X-chkp-sid:$SESSION_ID" --silent -k https://$CP_MGMT/web_api/show-group -d '{ "name" : "'$NET_GROUP'" }'| jq -r .name`
+if [[ ! "$CHECK_GROUP" = "$NET_GROUP" ]]; then
+    echo "Required group $NET_GROUP does not exist in Checkpoint database."
+    exit 1
+fi
 
 echo "Creating object $NETWORK"
 echo ""
@@ -29,15 +37,17 @@ if [[ "$CHECK_NETWORK" = "" ]]; then
             echo "Something unexpected happened during publish. Check logs."
         else
             echo "Publishing..."
-            TASK_STATE=`curl -X POST -H "content-Type: application/json" -H "X-chkp-sid:$SESSION_ID" --silent -k https://$CP_MGMT/web_api/show-task -d '{ "task-id" : "'$TASK_ID'" }' | jq -r '.tasks[]|.status'`
-            if [[ ! "$TASK_STATE" = "succeeded" ]]; then
-                sleep 2
+            START_TIME=`date +%s`
+            TIME_DIFF=0
+            TASK_STATE="init"
+            while [[ $TIME_DIFF -lt $PUBLISH_TIMEOUT && ! "$TASK_STATE" = "succeeded" ]]; do
                 TASK_STATE=`curl -X POST -H "content-Type: application/json" -H "X-chkp-sid:$SESSION_ID" --silent -k https://$CP_MGMT/web_api/show-task -d '{ "task-id" : "'$TASK_ID'" }' | jq -r '.tasks[]|.status'`
-                if [[ ! "$TASK_STATE" = "succeeded" ]]; then
-                    echo "Something unexpected happened during publish. Check logs."
-                else
-                    echo "Publish $TASK_STATE"
-                fi
+                sleep 1
+                CURR_TIME=`date +%s`
+                TIME_DIFF=$[$CURR_TIME - $START_TIME]
+            done
+            if [[ ! "$TASK_STATE" = "succeeded" ]]; then
+                echo "Something unexpected happened during publish. Publish state: $TASK_STATE - Check logs."
             else
                 echo "Publish $TASK_STATE"
             fi
