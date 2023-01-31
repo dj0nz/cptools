@@ -13,7 +13,7 @@
 . /opt/CPshared/5.0/tmp/.CPprofile.sh
 
 # Liste von Gateways aus der Check Point Datenbank extrahieren
-GW_LIST=(`mgmt_cli -r true show gateways-and-servers limit 500 | egrep -B 1 'ClusterMember|simple-gateway' | grep name | awk '{print $2}' | tr -d '"'`)
+GW_LIST=(`mgmt_cli -r true show gateways-and-servers limit 500 | egrep -B 1 'cluster-member|simple-gateway' | grep name | awk '{print $2}' | tr -d '"'`)
 PORT=18208
 CFG_PATH=/home/admin/module-config
 
