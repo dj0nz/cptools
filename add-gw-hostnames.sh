@@ -12,7 +12,7 @@ CHANGED=no
 
 LOCKED=`clish -c "show config-state" | grep owned`
 if [[ $LOCKED ]]; then
-    echo "Gaia database locked. Exiting."
+    echo "gaia database locked. Exiting."
     exit 1
 fi
 
