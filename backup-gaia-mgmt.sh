@@ -1,6 +1,7 @@
 #!/bin/bash
 
 # Check Point Management Server Backup
+# 
 # Michael Goessmann Matos / NTT
 # Feb 2023
 
@@ -10,10 +11,11 @@ CPVER=`rpm -qa | grep CPsuite | awk -F'-' '{print $2}'`
 # load checkpoint environment
 . /etc/profile.d/CP.sh
 
-# variables
-#SERVER=<BACKUP-SERVER>
-#USERNAME=<USER>
-DIRECTORY=/backup
+# destination server to copy backup to
+SERVER=<BACKUP-SERVER>
+USERNAME=<USER>
+DIRECTORY=<DIRECTORY>
+# local directories and other stuff
 CP_BACKUP_DIR=/var/log/CPbackup/backups/
 TMPDIRECTORY=/var/log/tmp/backup
 BKP_LOG=/var/log/sysbackup.log
@@ -21,18 +23,7 @@ BKP_DAY=`date +%d`
 
 # create a clean log file
 if [ -f $BKP_LOG ]; then
-    if [ -f $BKP_LOG.2 ]; then
-       mv $BKP_LOG.2 $BKP_LOG.3
-    fi
-    if [ -f $BKP_LOG.1 ]; then
-        mv $BKP_LOG.1 $BKP_LOG.2
-    fi
-    if [ -f $BKP_LOG.0 ]; then
-       mv $BKP_LOG.0 $BKP_LOG.1
-    fi
-    mv $BKP_LOG $BKP_LOG.0
     cat /dev/null > $BKP_LOG
-    chmod 644 $BKP_LOG
 else
     touch $BKP_LOG
 fi
@@ -50,12 +41,13 @@ fi
 mkdir $TMPDIRECTORY
 cd $TMPDIRECTORY
 
+# unlock if config locked
 LOCKED=`clish -c "show config-state" | grep owned`
 if [[ $LOCKED ]]; then
     clish -c "lock database override"
 fi
 
-# Version and disk space info
+# version and disk space info
 clish -c "show version all" >> ver.txt
 cpinfo -y fw1 2>&1 >> ver.txt
 df -h >> ver.txt
@@ -83,8 +75,8 @@ fi
 md5sum $HOSTNAME-$BKP_DAY.tar > $HOSTNAME-$BKP_DAY.md5
 
 # ...and upload
-#scp -q $TMPDIRECTORY/$HOSTNAME-$BKP_DAY.tar $USERNAME@$SERVER:$DIRECTORY/$HOSTNAME-$BKP_DAY.tar
-#scp -q $TMPDIRECTORY/$HOSTNAME-$BKP_DAY.md5 $USERNAME@$SERVER:$DIRECTORY/$HOSTNAME-$BKP_DAY.md5
+scp -q $TMPDIRECTORY/$HOSTNAME-$BKP_DAY.tar $USERNAME@$SERVER:$DIRECTORY/$HOSTNAME-$BKP_DAY.tar
+scp -q $TMPDIRECTORY/$HOSTNAME-$BKP_DAY.md5 $USERNAME@$SERVER:$DIRECTORY/$HOSTNAME-$BKP_DAY.md5
 
 echo "---------------------------------------------------------"
 echo "Backup END `\date`"
