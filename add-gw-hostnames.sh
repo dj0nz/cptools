@@ -12,7 +12,7 @@ CHANGED=no
 
 echo "creating missing host name entries."
 for INDEX in "${GW_LIST[@]}"; do
-   # remove nonprintable, does not work elsewhere
+   # remove nonprintable, does not work otherwise
    GW=`tr -dc '[[:print:]]' <<< "$INDEX"`
    GW_NAME=`echo $GW | awk -F , '{print $1}'`
    GW_IP=`echo $GW | awk -F , '{print $2}'`
