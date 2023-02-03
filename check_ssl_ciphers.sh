@@ -18,8 +18,8 @@ if [[ ! "$REACH" = "Open" ]]; then
 fi
 
 for PROTO in ssl3 tls1 tls1_1 tls1_2 tls1_3; do
-    CIPHER=`cpopenssl s_client -connect $TARGET:443 -$PROTO 2>&1 | grep ^New | awk '{print $5}' | tr -d '()'`
-    PROTOCOL=`cpopenssl s_client -connect $TARGET:443 -$PROTO 2>&1 | grep Protocol | awk '{print $3}'`
+    CIPHER=`echo -n | cpopenssl s_client -connect $TARGET:443 -$PROTO 2>&1 | grep ^New | awk '{print $5}' | tr -d '()'`
+    PROTOCOL=`echo -n | cpopenssl s_client -connect $TARGET:443 -$PROTO 2>&1 | grep Protocol | awk '{print $3}'`
     if [[ $PROTOCOL = "" ]]; then
         PROTOCOL=`echo $PROTO | tr '[:lower:]' '[:upper:]' | tr '_' '.' | sed 's/.../&v/'`
     fi
