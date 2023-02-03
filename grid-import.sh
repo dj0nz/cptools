@@ -70,8 +70,8 @@ if [[ ! "$GRID_REACH" = "Open" ]]; then
 fi
 CP_REACH=`timeout 3 bash -c "</dev/tcp/$CP_MGMT/443" 2>/dev/null &&  echo "Open"`
 if [[ ! "$CP_REACH" = "Open" ]]; then
-  echo "Checkpoint Management unreachable. Exiting."
-  exit 1
+    echo "Checkpoint Management unreachable. Exiting."
+    exit 1
 fi
 if [[ ! -f $CP_API_KEY_ENC ]]; then
     echo "Encrypted Checkpoint API key file ($CP_API_KEY_ENC) not found. Exiting."
@@ -103,10 +103,10 @@ NUM=`cat $OUTPUT | wc -l`
 if [[ ! $NUM -lt 1 ]]; then
     while read line; do
         CHECK=`echo $line | grep -E ".*,$IPREGEX\/24"`
-	      if [[ "$CHECK" = "" ]]; then
-	          echo "IP address syntax wrong in line $line."
-		        exit 1
-	      fi
+	if [[ "$CHECK" = "" ]]; then
+	    echo "IP address syntax wrong in line $line."
+	    exit 1
+	fi
         COMMA=`echo $line | tr -d -c ',' | wc -m`
         if [[ ! "$COMMA" = "1" ]]; then
             echo "More than one comma in line $line."
