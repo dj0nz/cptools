@@ -68,7 +68,7 @@ PATTERN="DE"
 # IP address of the Infoblox Grid
 GRID_IP="192.168.1.8"
 # Uncomment if you want to set the search containers manually
-# GRID_CONTAINERS="10.1.0.0/16 10.2.0.0/16"
+# GRID_CONTAINERS="10.3.0.0/16 10.2.0.0/16"
 # Check Point Management Server IP
 CP_MGMT="192.168.1.11"
 # Group name in Check Point database that should contain the networks we create
@@ -101,21 +101,23 @@ fi
 # Reset output file
 touch $OUTPUT
 cat /dev/null > $OUTPUT
-
+echo "Check Point network object import from Infoblox Grid"
 echo ""
-echo "Please enter gpg passphrase(s) when prompted to do so."
+echo "Please enter gpg passphrases for Infoblox credentials (first) and Check Point API-key (second) if prompted."
 read -p "Press any key to continue... " -n1
-echo ""
 
 # Read networks from Infoblox Grid containers using WAPI, search for Strings that start with $PATTERN and write networks and comments to $OUTPUT file
 # First: decrypt GRID credentials, format of the credentials file see curl documentation (link in header section)
-gpg -o grid-creds.txt --pinentry-mode=loopback -qd $GRID_CREDS
+echo "Decrypt Infoblox credentials"
+gpg -o grid-creds.txt --pinentry-mode=loopback --no-symkey-cache -qd $GRID_CREDS
 echo "Getting networks from Infoblox Grid..."
 if [[ $GRID_CONTAINERS = "" ]]; then
     GRID_CONTAINERS=`curl -k --silent --netrc-file grid-creds.txt https://$GRID_IP/wapi/v2.10/networkcontainer | jq -r '.[]|.network'`
 fi
 for i in $GRID_CONTAINERS; do curl -k --silent --netrc-file grid-creds.txt https://$GRID_IP/wapi/v2.10/network?network_container=$i | jq --arg PATTERN "$PATTERN" -r '.[]| select(.comment | . and startswith($PATTERN)) | [.["comment"], .["network"]] | @csv' | tr -d '"'; done >> $OUTPUT
 rm grid-creds.txt
+
+echo ""
 
 # Syntax checking. Error and exit if network not /24 or no valid IP or comma in comment, which would break csv structure
 NUM=`cat $OUTPUT | wc -l`
@@ -138,15 +140,28 @@ else
 fi
 
 # API login to Check Point management.
-API_KEY=`gpg --pinentry-mode=loopback -qd $CP_API_KEY_ENC`
+echo "Decrypt Check Point API key"
+API_KEY=`gpg --pinentry-mode=loopback --no-symkey-cache -qd $CP_API_KEY_ENC`
 curl -X POST -H "content-Type: application/json" --silent -k https://$CP_MGMT/web_api/login -d '{ "api-key" : "'$API_KEY'" }' > $SESSION_INFO
 SESSION_ID=`cat $SESSION_INFO | jq -r .sid`
 
 # Check if destination group exists
 CHECK_GROUP=`curl -X POST -H "content-Type: application/json" -H "X-chkp-sid:$SESSION_ID" --silent -k https://$CP_MGMT/web_api/show-group -d '{ "name" : "'$NET_GROUP'" }'| jq -r .name`
 if [[ ! "$CHECK_GROUP" = "$NET_GROUP" ]]; then
-    echo "Required group $NET_GROUP does not exist in Checkpoint database."
-    exit 1
+    read -p "Required group $NET_GROUP does not exist in Checkpoint database. Create? [Y/N] " yn
+    case $yn in
+        [Yy]* ) CREATE_GROUP=`curl -X POST -H "content-Type: application/json" -H "X-chkp-sid:$SESSION_ID" --silent -k https://$CP_MGMT/web_api/add-group -d '{ "name" : "'$NET_GROUP'" }' | jq -r '."meta-info"|."validation-state"'` 
+                if [[ ! "$CREATE_GROUP" = "ok" ]]; then
+                    echo "Something went wrong during object creation"
+                    exit 1
+                else
+                    echo "Group object $NET_GROUP created"
+                fi
+                ;;
+        * ) echo "Can't continue without group. Exiting." 
+            exit 1
+            ;;
+    esac
 fi
 
 # Loop through networks and create missing
