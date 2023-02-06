@@ -6,7 +6,7 @@
 #
 # Variables or settings you might want to adjust:
 # - $GRID_IP: The IP address of your Infoblox Grid
-# - $GRID_CONTAINERS: Infoblox Network Container "Names"
+# - $GRID_CONTAINERS: Infoblox Network Container "Names". Gathered automatically if not set.
 # - $PATTERN: Search pattern to filter networks based on comments field content
 # - $OUTPUT: Output file. Contains comments and networks in csv format.
 # - $CP_API_KEY_ENC: Encrypted file that contains Check Point API key
@@ -67,8 +67,8 @@ OUTPUT=/tmp/netlist.csv
 PATTERN="DE"
 # IP address of the Infoblox Grid
 GRID_IP="192.168.1.8"
-# Look for networks in these containers. Note: This will not search in child containers!
-GRID_CONTAINERS="10.1.0.0/16 10.2.0.0/16"
+# Uncomment if you want to set the search containers manually
+# GRID_CONTAINERS="10.1.0.0/16 10.2.0.0/16"
 # Check Point Management Server IP
 CP_MGMT="192.168.1.11"
 # Group name in Check Point database that should contain the networks we create
@@ -111,6 +111,9 @@ echo ""
 # First: decrypt GRID credentials, format of the credentials file see curl documentation (link in header section)
 gpg -o grid-creds.txt --pinentry-mode=loopback -qd $GRID_CREDS
 echo "Getting networks from Infoblox Grid..."
+if [[ $GRID_CONTAINERS = "" ]]; then
+    GRID_CONTAINERS=`curl -k --silent --netrc-file grid-creds.txt https://$GRID_IP/wapi/v2.10/networkcontainer | jq -r '.[]|.network'`
+fi
 for i in $GRID_CONTAINERS; do curl -k --silent --netrc-file grid-creds.txt https://$GRID_IP/wapi/v2.10/network?network_container=$i | jq --arg PATTERN "$PATTERN" -r '.[]| select(.comment | . and startswith($PATTERN)) | [.["comment"], .["network"]] | @csv' | tr -d '"'; done >> $OUTPUT
 rm grid-creds.txt
 
