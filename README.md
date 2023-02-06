@@ -3,7 +3,7 @@
 I use these scripts at work and wanted to make them public available. Maybe some of you can benefit from them. 
 That would make me very happy. Feel free to contact me if you find any serious mistakes.
 
-### add-gw-hostnames.sh
+### [add-gw-hostnames.sh](blob/main/add-gw-hostnames.sh)
 Uses mgmt_cli to fetch names and IPs of gateways or cluster members from Check Point database and creates host name entries. 
 
 ### backup-gaia-mgmt.sh
