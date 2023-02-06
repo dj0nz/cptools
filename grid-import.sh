@@ -1,14 +1,30 @@
 #!/usr/bin/bash
 
 # Purpose:
-# Read networks from Infoblox IPAM ("$GRID_IP") network containers ("$GRID_CONTAINERS"), search for comment fields that start with $PATTERN
-# Store filtered networks and comments to a file ("$OUTPUT") and use this file to create the corresponding objects in the Check Point database.
+# Read networks from Infoblox IPAM network containers, search for comment fields that start with a certain pattern.
+# Store filtered networks and comments to a file and use this file to create the corresponding objects in the Check Point database.
 #
-# This script can be run from any system with a bash shell that is authorized for API access to both (Check Point / Infoblox) management systems.
+# Variables or settings you might want to adjust:
+# - $GRID_IP: The IP address of your Infoblox Grid
+# - $GRID_CONTAINERS: Infoblox Network Container "Names"
+# - $PATTERN: Search pattern to filter networks based on comments field content
+# - $OUTPUT: Output file. Contains comments and networks in csv format.
+# - $CP_API_KEY_ENC: Encrypted file that contains Check Point API key
+# - $GRID_CREDS: Encrypted file that contains Infoblox credentials (netrc format)
+# - $CP_MGMT: Ip address of Check Point Management server (or domain)
+# - $NET_GROUP: Name of the network group in Check Point database where the networks should be added to
+#
+# Also, you might want to change the naming template for the network objects created in the CP database, which currently is "net_$NETWORK_24".
+# And BTW networks created are always /24. If you want to change that, you may use the $NETMASK variable which is also extracted from the
+# CSV file the Infoblox WAPI call created. Don't forget to change naming template accordingly if you do so.
+#
+# Script can be run from any system with a bash shell that is authorized for API access to both (Check Point / Infoblox) management systems.
 # It is NOT intended to be run unattended, because it needs user input (passphrase to decrypt Checkpoint API key and Grid credentials).
-# Of course, these files must have been encrypted beforehand. Don't store them unencrypted!
 #
-# One more thing: You don't need to be root to run this script.
+# Of course, these files must have been encrypted beforehand (using gpg -c). Don't store them unencrypted!
+# You may also use encryption tools like gocryptfs but you will have to trust the superuser then if you're working on a multiuser system.
+#
+# One more thing: This script is not intended to be run as root.
 #
 # "Work safe, work smart. Your future depends on it."
 # -- Black Mesa Announcement System
@@ -93,7 +109,7 @@ echo ""
 
 # Read networks from Infoblox Grid containers using WAPI, search for Strings that start with $PATTERN and write networks and comments to $OUTPUT file
 # First: decrypt GRID credentials, format of the credentials file see curl documentation (link in header section)
-gpg -o grid-creds.txt -qd $GRID_CREDS
+gpg -o grid-creds.txt --pinentry-mode=loopback -qd $GRID_CREDS
 echo "Getting networks from Infoblox Grid..."
 for i in $GRID_CONTAINERS; do curl -k --silent --netrc-file grid-creds.txt https://$GRID_IP/wapi/v2.10/network?network_container=$i | jq --arg PATTERN "$PATTERN" -r '.[]| select(.comment | . and startswith($PATTERN)) | [.["comment"], .["network"]] | @csv' | tr -d '"'; done >> $OUTPUT
 rm grid-creds.txt
@@ -119,7 +135,7 @@ else
 fi
 
 # API login to Check Point management.
-API_KEY=`gpg -qd $CP_API_KEY_ENC`
+API_KEY=`gpg --pinentry-mode=loopback -qd $CP_API_KEY_ENC`
 curl -X POST -H "content-Type: application/json" --silent -k https://$CP_MGMT/web_api/login -d '{ "api-key" : "'$API_KEY'" }' > $SESSION_INFO
 SESSION_ID=`cat $SESSION_INFO | jq -r .sid`
 
@@ -136,8 +152,9 @@ echo "Creating networks in Checkpoint database..."
 echo ""
 while read line; do
     COMMENT=`echo $line | awk -F , '{print $1}'`
-    # Networks are always /24
     NETWORK=`echo $line | awk -F , '{print $2}' | awk -F '/' '{print $1}'`
+    # Networks are /24 per default. If you want to change that, use $NETMASK in network object
+    NETMASK=`echo $line | awk -F , '{print $2}' | awk -F '/' '{print $2}'`
     # Check if object is already in database
     CHECK_NETWORK=`curl -X POST -H "content-Type: application/json" -H "X-chkp-sid:$SESSION_ID" --silent -k https://$CP_MGMT/web_api/show-networks -d '{ "filter" : "'$NETWORK'" }'| jq -r '.objects[]|."subnet4"'`
     if [[ $CHECK_NETWORK = "" ]]; then
