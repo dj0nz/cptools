@@ -2,17 +2,21 @@
 
 # Check Point Firewall Module Backup
 #
-# Runs locally on Smartcenter.
-# Copy to desired destination (e.g. /home/admin/scripts) and chmod 700
-# Schedule to run weekly or monthly. Example: 
-# add cron job Modulebackup command "/home/admin/gw-config-backup.sh" recurrence weekly days 0 time 23:30
-# Backups got to $BKPDIR
+# - Gets Gaia config and version info from all cluster members in database
+# - Should run locally on Smartcenter and uses CPRID
+# - Copy to desired destination (e.g. /home/admin/scripts) and chmod 700
+# - Schedule to run weekly or monthly. Example: 
+#   add cron job Modulebackup command "/home/admin/gw-config-backup.sh" recurrence weekly days 0 time 23:30
+# - Files go to $BKPDIR
+# - Gateway host names get added if missing
 # 
 # Michael Goessmann Matos, NTT Data - Feb 2023
 
 . /etc/profile.d/CP.sh
 
-# Get Gateway list (Cluster members only)
+# Get Gateway list (Cluster members only) from database
+# In the unlikely event you still have un-clustered firewalls, you will get all gateways with "(contains("cluster-member") or contains("simple-gateway")))"
+# You will have to change the get host name logic then, too
 GW_LIST=(`mgmt_cli -r true show gateways-and-servers limit 500 --format json | $CPDIR/jq/jq -r '.objects[]| select(.type | contains("cluster-member"))|.name'`)
 PORT=18208
 BKPDIR=/home/admin/module-config
@@ -26,9 +30,9 @@ if [ ! -d $BKPDIR ]; then
 fi
 
 for INDEX in "${GW_LIST[@]}"; do
-    # Remove nonprintables, does not work otherwise.
+    # Remove nonprintables, does not work otherwise
     GW=`tr -dc '[[:print:]]' <<< "$INDEX"`
-    # Only try to backup if there is a host entry for this gateway.
+    # Add host name entry for this gateway if missing
     HOSTS=`clish -c "show configuration host" | grep $GW | awk '{print $4}'`
     if [[ ! "$HOSTS" = "$GW" ]]; then
         GW_UID=`mgmt_cli -r true show cluster-members --format json | $CPDIR/jq/jq -r --arg GW "$GW" '.objects[] | select(.name | contains($GW))|.uid'`
@@ -36,7 +40,7 @@ for INDEX in "${GW_LIST[@]}"; do
         printf "%-17s %s\n" "$GW: " "creating hosts entry"
         clish -s -c "add host name $GW ipv4-address $GW_IP"
     fi
-    # Check if CPRID port open.
+    # Check if CPRID port open
     OPEN=`timeout 3 bash -c "</dev/tcp/$GW/$PORT" 2>/dev/null && echo "Open" || echo "Closed"`
     if [[ "$OPEN" = "Open" ]]; then
         LOCKED=`$CPDIR/bin/cprid_util -server $GW -verbose rexec -rcmd clish -c "show config-state" | grep owned`
