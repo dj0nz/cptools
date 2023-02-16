@@ -1,25 +1,42 @@
 #!/bin/bash
 
-# Check Point Management Server Backup
+# Check Point management server backup script
+# 
+# Requirements: 
+# - Check Point Management Server R81.x (-> migrate server)
+# - a host to copy the backup to using scp
+# - a user with public key auth on the destination host (ssh-copy-id is your friend)
+#
+# Installation:
+# - copy script to /home/admin and chmod 700
+# - modify backup destination server section
+# - schedule to run daily at night
+# 
+# Notes:
+# - check log and backup files on a regular basis
+# - do a restore test at least once a year to make sure you are able to restore anything needed
+# - make sure you don't have important files in $TMPDIRECTORY before installing and running this script
+# - backup files get rotated automatically (naming scheme: $HOSTNAME-<Day-Of-Month>.tar)
 # 
 # Michael Goessmann Matos / NTT
 # Feb 2023
+
+# backup destination server
+SERVER=<backup server ip or hostname>
+USERNAME=<user with pubkey auth>
+DIRECTORY=<remote directory>
+
+# local directories and other stuff
+CP_BACKUP_DIR=/var/log/CPbackup/backups/
+TMPDIRECTORY=/var/log/tmp/backup
+BKP_LOG=/var/log/sysbackup.log
+BKP_DAY=`date +%d`
 
 # determine checkpoint version
 CPVER=`rpm -qa | grep CPsuite | awk -F'-' '{print $2}'`
 
 # load checkpoint environment
 . /etc/profile.d/CP.sh
-
-# destination server to copy backup to
-SERVER=<BACKUP-SERVER>
-USERNAME=<USER>
-DIRECTORY=<DIRECTORY>
-# local directories and other stuff
-CP_BACKUP_DIR=/var/log/CPbackup/backups/
-TMPDIRECTORY=/var/log/tmp/backup
-BKP_LOG=/var/log/sysbackup.log
-BKP_DAY=`date +%d`
 
 # create a clean log file
 if [ -f $BKP_LOG ]; then
@@ -28,6 +45,7 @@ else
     touch $BKP_LOG
 fi
 
+# redirect all non-devnulled output to logfile 
 exec > $BKP_LOG 2>&1
 
 # timestamp: backup begin
@@ -47,28 +65,35 @@ if [[ $LOCKED ]]; then
     clish -c "lock database override"
 fi
 
-# version and disk space info
+# version and system info
+echo "Version information:" >> ver.txt
 clish -c "show version all" >> ver.txt
-cpinfo -y fw1 2>&1 >> ver.txt
+echo "" >> ver.txt
+JUMBO=`cpinfo -y fw1 2>&1 | grep JUMBO | awk '{print $3}'`
+echo "Installed Jumbo Take: $JUMBO" >> ver.txt
+echo "" >> ver.txt
+echo "System information:" >> ver.txt
+clish -c "show asset all" >> ver.txt
 df -h >> ver.txt
 
-# system specific. maybe useful...
-tar cvPf sys.tar /etc
-tar rvfP sys.tar /home/admin
-tar rvfP sys.tar /root
+# system conf. can be useful to recover a system.
+tar cvPf etc.tar /etc
+
+# backup user homes
+tar rvfP home.tar /home
 
 # gaia config backup
 clish -c "save configuration $HOSTNAME-config"
 
 # checkpoint system and product backup
-printf "y \n" | /bin/backup -f $HOSTNAME-cpbackup 2>/dev/null
+printf "y \n" | /bin/backup -f $HOSTNAME-cpbackup > /dev/null 2>&1
 mv $CP_BACKUP_DIR/$HOSTNAME-cpbackup.tgz $TMPDIRECTORY/
 
 # create export file
-$FWDIR/bin/upgrade_tools/migrate export -n $TMPDIRECTORY/$HOSTNAME-export.tgz
+$FWDIR/scripts/migrate_server export -v $CPVER -n -skip_upgrade_tools_check --ignore_warnings -npb $TMPDIRECTORY/$HOSTNAME-export.tgz > /dev/null 2>&1
 
 # packaging...
-tar cvf $HOSTNAME-$BKP_DAY.tar ver.txt sys.tar $HOSTNAME-config $HOSTNAME-cpbackup.tgz
+tar cvf $HOSTNAME-$BKP_DAY.tar ver.txt etc.tar home.tar $HOSTNAME-config $HOSTNAME-cpbackup.tgz
 if [ -f $HOSTNAME-export.tgz ]; then
    tar rvf $HOSTNAME-$BKP_DAY.tar $HOSTNAME-export.tgz
 fi
