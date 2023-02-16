@@ -8,9 +8,9 @@ check_url () {
     while [ ${#NAME} -lt 74 ]; do NAME="$NAME."; done
     echo -en "$NAME "
     if [[ $PROXY ]]; then
-        RESPONSE=$(curl --proxy $PROXY -LiskI $1 | grep "HTTP/1.1" | awk 'END { print }')
+        RESPONSE=$(curl_cli --proxy $PROXY -LiskI $1 | grep "HTTP/1.1" | awk 'END { print }')
     else
-        RESPONSE=$(curl -LiskI $1 | grep "HTTP/1.1" | awk 'END { print }')
+        RESPONSE=$(curl_cli -LiskI $1 | grep "HTTP/1.1" | awk 'END { print }')
     fi
     STATUS=$(echo "${RESPONSE}" | awk 'END { print $2 " " $3 " " $4}')
     STATUS_CODE=$(echo ${RESPONSE} | awk '{ print $2 }')
