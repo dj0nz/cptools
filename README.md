@@ -23,3 +23,9 @@ Small script that runs on Check Point management server. Uses cprid_util to get 
 
 ### [logwork.sh](logwork.sh)
 The Logwork Orange (“Welly, welly, welly, welly, welly, welly, well. To what do I owe the extreme pleasure of this surprising visit?” - Anthony Burgess, A Clockwork Orange) script deletes old log files. Check Point version and retention time adjustable.
+
+### [topocalc.sh](topocalc.sh)
+Quick-Check cluster topology.
+
+### [move-to-bond.sh](move-to-bond.sh)
+Move existing VLAN interface from any eth (bond, tun, whatever) to a newly created bond interface. Avoids copy-paste-issues.
