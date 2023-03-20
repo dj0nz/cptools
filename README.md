@@ -1,7 +1,6 @@
 ## My private Check Point knowledge base ##
 
-I use these scripts at work  
-Feel free to contact me if you find any serious mistakes.
+Scripts I used at work.
 
 ### [add-gw-hostnames.sh](add-gw-hostnames.sh)
 Uses mgmt_cli to fetch names and IPs of gateways or cluster members from Check Point database and creates host name entries. 
