@@ -27,4 +27,7 @@ The Logwork Orange (“Welly, welly, welly, welly, welly, welly, well. To what d
 Quick-Check cluster topology.
 
 ### [move-to-bond.sh](move-to-bond.sh)
-Move existing VLAN interface from any eth (bond, tun, whatever) to a newly created bond interface. Avoids copy-paste-issues.
+Move existing VLAN interface from any eth (bond, tun, whatever) to a newly created bond interface. Avoids copy-paste-issues. Runs on gateway(s)
+
+### [move-to-bond-mgmt.sh](move-to-bond-mgmt.sh)
+Modify cluster topology before moving VLANs to bond interface. Runs on management server.
