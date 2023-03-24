@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Move existing VLANs from current configuration to new bond interface. IP and netmask are retained.
-# This is the management counterpart of the "move-to-bond.sh" script. Use this one first, then
+# This is the management counterpart of the "eth2bond-gw.sh" script. Use this one first, then
 # change VLANs locally on firewall machines afterwards. Make sure you use same VLANs and bond names
 # in both scripts or face trouble.
 #

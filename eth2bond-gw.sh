@@ -1,7 +1,8 @@
 #!/bin/bash
 
 # Move existing VLANs from current configuration to new bond interface. IP and netmask are retained.
-# To modify firewall topology in management database, see move-to-bond-mgmt.sh 
+# To modify firewall topology in management database, please run eth2bond-mgmt.sh before this script.
+# Make sure, VLANs and bond are identical in both scripts.
 #
 # Things to check / change:
 # - $BOND  : New bonding group that will get created. Make sure it doesn't exist.
