@@ -50,7 +50,7 @@ for IF in $IFLIST; do
             SPOOF=`spoofcheck $IF`
         fi
     fi
-    printf "%-12s %s\n" "$IF: " "Topology: $TOPO, $SPOOF"
+    printf "%-12s %s\n" "$IF: " "$SPOOF"
 done
 
 rm interfaces-$RAND.json
