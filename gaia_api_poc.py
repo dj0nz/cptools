@@ -9,6 +9,9 @@
 # netrc (https://everything.curl.dev/usingcurl/netrc) which is supported natively
 # with netrc module.
 #
+# achtung: this is just a python api example without proper input/output checking 
+# and with limited practical use (same information could be obtained with a bash onliner)!
+#
 # dj0Nz mar 2023
 
 import requests, json, netrc
