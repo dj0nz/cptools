@@ -9,7 +9,7 @@
 # netrc (https://everything.curl.dev/usingcurl/netrc) which is supported natively
 # with netrc module.
 #
-# achtung: this is just a python api example without proper input/output checking 
+# achtung: this is just a python api example with just basic input/output checking 
 # and with limited practical use (same information could be obtained with a bash onliner)!
 # also, the check point gaia api has its flaws:
 #
@@ -23,7 +23,7 @@
 #
 # dj0Nz mar 2023
 
-import requests, json, netrc
+import os, requests, json, netrc, ipaddress
 
 # next two lines needed to suppress warnings if self signed certificates are used
 from urllib3.exceptions import InsecureRequestWarning
@@ -37,42 +37,60 @@ def api_call(ip_addr, command, json_payload, sid):
     else:
         request_headers = {'Content-Type' : 'application/json', 'X-chkp-sid' : sid}
     r = requests.post(url,data=json.dumps(json_payload), headers=request_headers, verify = False)
-    return r.json()
+    status_code = r.status_code
+    return [status_code, r.json()]
 
 # login function. self explaining.
 def api_login(ip_addr,user,password):
     payload = {'user':user, 'password' : password}
     response = api_call(host,'login',payload,'')
-    return response["sid"]
+    if str(response[0]) == '200':
+        return response[1]["sid"]
+    else:
+        return 'Login error'
 
 # check point gateway and route to query 
 host = '192.168.1.2'
 route = '192.168.100.0/24'
 
+# check credentials file
+auth_file = '.netrc'
+exists = os.path.isfile(auth_file)
+if not exists:
+    quit('Credentials file not found. Exiting.')
+
 # get login credentials from .netrc file
-auth = netrc.netrc('./.netrc')
+auth = netrc.netrc(auth_file)
 token = auth.authenticators(host)
-user = token[0]
-password = token[2]
+if token:
+    user = token[0]
+    password = token[2]
+else:
+    quit('Host not found in netrc file. Exiting.')
 
 # get ip / mask separated for api call
-dest_ip = route.split('/')[0]
-dest_mask = route.split('/')[1]
+ip = ipaddress.IPv4Network(route)
+dest_ip = str(ip.network_address)
+dest_mask = str(ip.prefixlen)
 
 # get session id needed to authorize api call
 sid = api_login(host,user,password)
+if sid == 'Login error':
+    quit('Login error. Exiting.')
 
 # request route with api
 request_data = {"address": dest_ip, "mask-length": dest_mask}
 get_route_result = api_call(host, 'show-static-route', request_data, sid)
 
-# scratch next hop ip from response data
-gateway = get_route_result['next-hop'][0]['gateway']
-
-print(gateway)
+if str(get_route_result[0]) == '200':
+    # scratch next hop ip from response data
+    gateway = get_route_result[1]['next-hop'][0]['gateway']
+    print(gateway)
+else:
+    print('No explicit routing')
 
 # be nice and log out
 logout_result = api_call(host, "logout",{},sid)
-logout_message = logout_result['message']
+logout_message = logout_result[1]['message']
 if logout_message != 'OK':
     print('Logout unsuccessful.')
