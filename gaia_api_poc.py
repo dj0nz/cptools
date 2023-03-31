@@ -2,16 +2,16 @@
 #
 # checkpoint python api example and poc
 # 
-# this is a modified example from the check point gaia api reference documentation
-# https://sc1.checkpoint.com/documents/latest/GaiaAPIs/#ws~v1.7%20
+# this is just an example script. the source example is taken from the check point 
+# gaia api reference documentation at https://sc1.checkpoint.com/documents/latest/GaiaAPIs/#ws~v1.7%20
 # 
 # had to remove typos first. then removed hard coded credentials. instead, i use
 # netrc (https://everything.curl.dev/usingcurl/netrc) which is supported natively
 # with netrc module.
 #
-# achtung: this is just a python api example with just basic input/output checking 
-# and with limited practical use (same information could be obtained with a bash onliner)!
-# also, the check point gaia api has its flaws:
+# achtung: this is just some kind of poc with just basic input/output checking 
+# and limited practical use (same information could be obtained with a bash oneliner)!
+# also, the check point gaia api call to get a specific route has its flaws:
 #
 # - the show-static-route call returns an error if the requested route is not explicitly set.
 #   this is wrong. there is always a route if there is a default gateway.
@@ -19,13 +19,14 @@
 # - the show-static-route call does not return the outgoing interface,  
 #   which significantly limits the usefulness of this api call
 #
-# conclusion: better use bash scripts via ssh/cpridutil ;)
+# conclusion: better use bash scripts via ssh/cpridutil in this specific case but maybe
+# some code fragments are useful for other tasks...
 #
 # dj0Nz mar 2023
 
 import os, requests, json, netrc, ipaddress
 
-# next two lines needed to suppress warnings if self signed certificates are used
+# next two lines and "verify = False" in request needed to suppress warnings if self signed certificates are used
 from urllib3.exceptions import InsecureRequestWarning
 requests.packages.urllib3.disable_warnings(category=InsecureRequestWarning)
 
