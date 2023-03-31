@@ -38,20 +38,20 @@ spoofcheck () {
     IFL=$1
     OUT=`jq --arg IFL "$IFL" -r 'select(.name | . and startswith($IFL)) | ."topology-settings"|."ip-address-behind-this-interface"' interfaces-$RAND.json`
     if [[ "$OUT" == "specific" ]]; then
-        # Get spoofing group object members
+        # Get spoofing group object 
         GROUP=`jq --arg IFL "$IFL" -r 'select(.name | . and startswith($IFL)) | ."topology-settings"|."specific-network"' interfaces-$RAND.json`
-        # Create list of members with type in "CSV" format
+        # Create list of spoofing group members with type in "CSV" format
         GRP_MEMBERS=`mgmt_cli -r true show group name $GROUP -f json | jq -r '.members[] | {name, type} | join(",")'`
-        # if members.type == network then check routing table on cluster member and raise warning if routing not okay
+        # if members.type == network then check routing table on cluster member
         for LINE in $GRP_MEMBERS; do
             TYPE=`echo $LINE | cut -d "," -f2`
             if [[ "$TYPE" == "network" ]]; then
                 VAL=`echo $LINE | cut -d "," -f1`
                 # get object from db 
                 NET_IN_DB=`mgmt_cli -r true show network name "$VAL"  --format json | jq -r .subnet4`
-                # check routing on firewall
+                # get outgoing interface for route on firewall
                 IF_COMP=`$CPDIR/bin/cprid_util -server ${MEMBERS[0]} -verbose rexec -rcmd ip route get $NET_IN_DB | grep -oP '(?<=dev )[^ ]*'`
-                # if routing okay, do nothing. Else: Raise "ICONSISTENT" flag
+                # if interface in topology and gateway are the same, do nothing. Else: Raise "ICONSISTENT" flag
                 if [[ ! "$IFL" == "$IF_COMP" ]]; then
                     RESULT="Inconsistent - Please check antispoofing!"
                 fi
