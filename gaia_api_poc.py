@@ -11,6 +11,15 @@
 #
 # achtung: this is just a python api example without proper input/output checking 
 # and with limited practical use (same information could be obtained with a bash onliner)!
+# also, the check point gaia api has its flaws:
+#
+# - the show-static-route call returns an error if the requested route is not explicitly set.
+#   this is wrong. there is always a route if there is a default gateway.
+#
+# - the show-static-route call does not return the outgoing interface,  
+#   which significantly limits the usefulness of this api call
+#
+# conclusion: better use bash scripts via ssh/cpridutil ;)
 #
 # dj0Nz mar 2023
 
