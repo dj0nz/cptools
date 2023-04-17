@@ -1,6 +1,6 @@
 #!/usr/bin/python3
 #
-# checkpoint python api example and poc
+# checkpoint gaia python api example and poc
 # 
 # this is just an example script. the source example is taken from the check point 
 # gaia api reference documentation at https://sc1.checkpoint.com/documents/latest/GaiaAPIs/#ws~v1.7%20
@@ -19,7 +19,8 @@
 # - the show-static-route call does not return the outgoing interface,  
 #   which significantly limits the usefulness of this api call
 #
-# conclusion: use the show-routes-static call and query the complete routing table for destination
+# conclusion: 
+# use the show-routes-static call and query the routing table json structure for destination and interface
 #
 # dj0Nz apr 2023
 
@@ -81,13 +82,13 @@ if str(get_route_result[0]) == '200':
     static_routes = get_route_result[1]['objects']
     num=len(static_routes)
     found = False
-    # query json structure to find route
+    # query routing table json to find route
     for index in range(0, num):
         dest = str(static_routes[index].get('address'))
         mask = str(static_routes[index].get('mask-length'))
         gateway = str(static_routes[index].get('next-hop').get('gateways')[0].get('address'))
         interface = str(static_routes[index].get('next-hop').get('gateways')[0].get('interface'))
-        # note default gateway for future use
+        # note default gateway in case no specific route found
         if dest == '0.0.0.0':
             def_gw = gateway
             def_if = interface
