@@ -19,14 +19,13 @@
 # - the show-static-route call does not return the outgoing interface,  
 #   which significantly limits the usefulness of this api call
 #
-# conclusion: better use bash scripts via ssh/cpridutil in this specific case but maybe
-# some code fragments are useful for other tasks...
+# conclusion: use the show-routes-static call and query the complete routing table for destination
 #
-# dj0Nz mar 2023
+# dj0Nz apr 2023
 
-import os, requests, json, netrc, ipaddress
+import os, requests, json, netrc
 
-# next two lines and "verify = False" in request needed to suppress warnings if self signed certificates are used
+# next two lines needed to suppress warnings if self signed certificates are used
 from urllib3.exceptions import InsecureRequestWarning
 requests.packages.urllib3.disable_warnings(category=InsecureRequestWarning)
 
@@ -69,26 +68,41 @@ if token:
 else:
     quit('Host not found in netrc file. Exiting.')
 
-# get ip / mask separated for api call
-ip = ipaddress.IPv4Network(route)
-dest_ip = str(ip.network_address)
-dest_mask = str(ip.prefixlen)
-
 # get session id needed to authorize api call
 sid = api_login(host,user,password)
 if sid == 'Login error':
     quit('Login error. Exiting.')
 
-# request route with api
-request_data = {"address": dest_ip, "mask-length": dest_mask}
-get_route_result = api_call(host, 'show-static-route', request_data, sid)
+# request routing table with api
+get_route_result = api_call(host, 'show-routes-static', {}, sid)
 
+# check web server response
 if str(get_route_result[0]) == '200':
-    # scratch next hop ip from response data
-    gateway = get_route_result[1]['next-hop'][0]['gateway']
-    print(gateway)
+    static_routes = get_route_result[1]['objects']
+    num=len(static_routes)
+    found = False
+    # query json structure to find route
+    for index in range(0, num):
+        dest = str(static_routes[index].get('address'))
+        mask = str(static_routes[index].get('mask-length'))
+        gateway = str(static_routes[index].get('next-hop').get('gateways')[0].get('address'))
+        interface = str(static_routes[index].get('next-hop').get('gateways')[0].get('interface'))
+        # note default gateway for future use
+        if dest == '0.0.0.0':
+            def_gw = gateway
+            def_if = interface
+        else:
+            ip = dest + '/' + mask
+            if ip == route:
+                found = True
 else:
-    print('No explicit routing')
+    print('Failed to get static routes')
+
+# output - just for testing/validating
+if found:
+    print(f'static route for dst {route} via {gateway} dev {interface} found')
+else:
+    print(f'dst {route} routed via default gateway {def_gw} dev {def_if}')
 
 # be nice and log out
 logout_result = api_call(host, "logout",{},sid)
