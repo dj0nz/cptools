@@ -80,14 +80,13 @@ get_route_result = api_call(host, 'show-routes-static', {}, sid)
 # check web server response
 if str(get_route_result[0]) == '200':
     static_routes = get_route_result[1]['objects']
-    num=len(static_routes)
     found = False
     # query routing table json to find route
-    for index in range(0, num):
-        dest = str(static_routes[index].get('address'))
-        mask = str(static_routes[index].get('mask-length'))
-        gateway = str(static_routes[index].get('next-hop').get('gateways')[0].get('address'))
-        interface = str(static_routes[index].get('next-hop').get('gateways')[0].get('interface'))
+    for static_route in static_routes:
+        dest = str(static_route.get('address'))
+        mask = str(static_route.get('mask-length'))
+        gateway = str(static_route.get('next-hop').get('gateways')[0].get('address'))
+        interface = str(static_route.get('next-hop').get('gateways')[0].get('interface'))
         # note default gateway in case no specific route found
         if dest == '0.0.0.0':
             def_gw = gateway
