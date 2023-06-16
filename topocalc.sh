@@ -10,10 +10,14 @@
 # dj0Nz Mar 2023
 
 # Input checking
-CLUSTER=`mgmt_cli -r true show simple-cluster name "$1" --format json | jq -r '."name" | select( . != null )'` 
-if [[ ! $CLUSTER ]]; then
+if [[ ! $1 ]]; then
     echo "Usage: $0 [cluster name]"
-	exit 1
+    exit 1
+fi
+CLUSTER=`mgmt_cli -r true show simple-cluster name "$1" --format json | jq -r '."name" | select( . != null )'`
+if [[ ! $CLUSTER ]]; then
+    echo "No cluster object with name $1 found."
+    exit 1
 fi
 
 echo ""
@@ -67,6 +71,8 @@ spoofcheck () {
 
 # Loop through interfaces and determine topology and antispoofing configuration
 for IF in $IFLIST; do
+    IF_IP=`jq --arg IF "$IF" -r 'select(."name" | . and startswith($IF)) | ."ipv4-address"' interfaces-$RAND.json`
+    IF_MASK=`jq --arg IF "$IF" -r 'select(."name" | . and startswith($IF)) | ."ipv4-mask-length"' interfaces-$RAND.json`
     TOPO=`jq --arg IF "$IF" -r 'select(."name" | . and startswith($IF)) | ."topology"' interfaces-$RAND.json`
     if [[ $TOPO == "automatic" ]]; then
         CALC=`jq --arg IF "$IF" -r 'select(."name" | . and startswith($IF)) | ."topology-automatic-calculation"' interfaces-$RAND.json`
@@ -82,7 +88,11 @@ for IF in $IFLIST; do
             SPOOF=`spoofcheck $IF`
         fi
     fi
-    printf "%-12s %s\n" "$IF: " "$SPOOF"
+    if [[ ! $IF_IP = "" ]]; then
+        printf "%-12s %-20s %s\n" "$IF:" "$IF_IP/$IF_MASK" "$SPOOF"
+    else
+        printf "%-12s %-20s %s\n" "$IF:" "-" "$SPOOF"
+    fi
 done
 
 rm interfaces-$RAND.json
