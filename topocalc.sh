@@ -6,8 +6,14 @@
 
 # !!! If a "specific" antispoofing configuration is used, this scripts expects a group object
 # !!! containing one or more network objects. It will raise a warning otherwise.
+#
+# BTW: To simply get interfaces, IPs and netmasks from cluster object, a oneliner is sufficient:
+# mgmt_cli -r true show simple-cluster name <cluster> -f json | jq -r '."interfaces" | ."objects"[] | [."name", ."ipv4-address", ."ipv4-mask-length"] | @csv'
+#
+# If you want to iterate over all cluster in your database, you may create a list with this command:
+# CLUSTERS=$(mgmt_cli -r true show gateways-and-servers --format json | jq -r '.objects[] | select (.type=="CpmiGatewayCluster") | .name')
 
-# dj0Nz Mar 2023
+# dj0Nz Jun 2023
 
 # Input checking
 if [[ ! $1 ]]; then
