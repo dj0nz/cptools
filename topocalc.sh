@@ -42,29 +42,35 @@ spoofcheck () {
     IFL=$1
     OUT=`jq --arg IFL "$IFL" -r 'select(.name | . and startswith($IFL)) | ."topology-settings"|."ip-address-behind-this-interface"' interfaces-$RAND.json`
     if [[ "$OUT" == "specific" ]]; then
-        # Get spoofing group object 
+        # Get spoofing group object
         GROUP=`jq --arg IFL "$IFL" -r 'select(.name | . and startswith($IFL)) | ."topology-settings"|."specific-network"' interfaces-$RAND.json`
-        # Create list of spoofing group members with type in "CSV" format
-        GRP_MEMBERS=`mgmt_cli -r true show group name $GROUP -f json | jq -r '.members[] | {name, type} | join(",")'`
-        # if members.type == network then check routing table on cluster member
-        for LINE in $GRP_MEMBERS; do
-            TYPE=`echo $LINE | cut -d "," -f2`
-            if [[ "$TYPE" == "network" ]]; then
-                VAL=`echo $LINE | cut -d "," -f1`
-                # get object from db 
-                NET_IN_DB=`mgmt_cli -r true show network name "$VAL"  --format json | jq -r .subnet4`
-                # get outgoing interface for route on firewall
-                IF_COMP=`$CPDIR/bin/cprid_util -server ${MEMBERS[0]} -verbose rexec -rcmd ip route get $NET_IN_DB | grep -oP '(?<=dev )[^ ]*'`
-                # if interface in topology and gateway are the same, do nothing. Else: Raise "ICONSISTENT" flag
-                if [[ ! "$IFL" == "$IF_COMP" ]]; then
-                    RESULT="Inconsistent - Please check antispoofing!"
+        NO_GROUP=`mgmt_cli -r true show group name "$GROUP" | grep 'not found'`
+        if [[ ! $NO_GROUP ]]; then
+            # Create list of spoofing group members with type in "CSV" format
+            GRP_MEMBERS=`mgmt_cli -r true show group name $GROUP -f json | jq -r '.members[] | {name, type} | join(",")'`
+            # if members.type == network then check routing table on cluster member
+            for LINE in $GRP_MEMBERS; do
+                TYPE=`echo $LINE | cut -d "," -f2`
+                if [[ "$TYPE" == "network" ]]; then
+                    VAL=`echo $LINE | cut -d "," -f1`
+                    # get object from db
+                    NET_IN_DB=`mgmt_cli -r true show network name "$VAL"  --format json | jq -r .subnet4`
+                    # get outgoing interface for route on firewall
+                    IF_COMP=`$CPDIR/bin/cprid_util -server ${MEMBERS[0]} -verbose rexec -rcmd ip route get $NET_IN_DB | grep -oP '(?<=dev )[^ ]*'`
+                    # if interface in topology and gateway are the same, do nothing. Else: Raise "ICONSISTENT" flag
+                    if [[ ! "$IFL" == "$IF_COMP" ]]; then
+                        RESULT="Inconsistent - Please check antispoofing!"
+                    fi
+                else
+                    # If spoofing group contains hosts or other group objects, it must be checked manually
+                    RESULT="Could not determine antispoofing configuration."
                 fi
-            else
-                # If spoofing group contains hosts or other group objects, it must be checked manually
-                RESULT="Could not determine antispoofing configuration. Please check manually."
-            fi
-        done
-        OUT=$GROUP
+            done
+            OUT=$GROUP
+        else
+            OUT=$GROUP
+            RESULT="No antispoofing group configured."
+        fi
     fi
     echo "$OUT, $RESULT"
 }
