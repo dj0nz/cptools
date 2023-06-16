@@ -61,7 +61,7 @@ spoofcheck () {
                 fi
             else
                 # If spoofing group contains hosts or other group objects, it must be checked manually
-                RESULT="Inconsistent - Please check antispoofing!"
+                RESULT="Could not determine antispoofing configuration. Please check manually."
             fi
         done
         OUT=$GROUP
