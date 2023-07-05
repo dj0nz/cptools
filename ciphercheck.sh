@@ -89,11 +89,11 @@ SESSION_ID=$($CURL_BIN -X POST -H "content-Type: application/json" --silent -k h
 # Get Check Point cluster object names and extract cluster member names and ip addresses from cluster definition
 CLUSTERS=$($CURL_BIN -X POST -H "Content-Type: application/json" -H "X-chkp-sid:$SESSION_ID" --silent -k https://$CP_MGMT:443/web_api/show-simple-clusters -d ' { }'| $JQ_BIN -r '.objects[].name')
 for CLUSTER in $CLUSTERS; do
-    MEMBERS=$($CURL_BIN -X POST -H "Content-Type: application/json" -H "X-chkp-sid:$SESSION_ID" --silent -k https://$CP_MGMT:443/web_api/show-simple-cluster -d '{ "name" : "'$CLUSTER'" }' | $JQ_BIN -r '."cluster-members"[] | [."name", ."ip-address"] | @csv' | tr -d '"')
+    MEMBERS+=($($CURL_BIN -X POST -H "Content-Type: application/json" -H "X-chkp-sid:$SESSION_ID" --silent -k https://$CP_MGMT:443/web_api/show-simple-cluster -d '{ "name" : "'$CLUSTER'" }' | $JQ_BIN -r '."cluster-members"[] | [."name", ."ip-address"] | @csv' | tr -d '"'))
 done 
 
 # Loop through cluster member list and check available ciphers
-for MEMBER in $MEMBERS; do
+for MEMBER in "${MEMBERS[@]}"; do
     MEMBER_IP=$(echo $MEMBER | cut -d ',' -f2)
     MEMBER_NAME=$(echo $MEMBER | cut -d ',' -f1)
     # Don't try if port not open
