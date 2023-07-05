@@ -10,6 +10,7 @@
 # The script file is needed on the management server at $CHANGE_SCRIPT location with following contents:
 # <code>
 # #!/bin/bash
+# cp /web/templates/httpd-ssl.conf.templ /web/templates/httpd-ssl.conf.templ_ORIGINAL
 # sed -i 's/^SSLCipherSuite.*/SSLCipherSuite ECDHE-RSA-AES256-SHA384:AES256-SHA256:!ADH:!EXP:RSA:+HIGH:!MEDIUM:!MD5:!LOW:!NULL:!SSLv2:!eNULL:!aNULL:!RC4:!SHA1/' /web/templates/httpd-ssl.conf.templ
 # sed -i 's/^SSLProtocol.*/SSLProtocol +TLSv1.2 +TLSv1.3/' /web/templates/httpd-ssl.conf.templ
 # /bin/template_xlate : /web/templates/httpd-ssl.conf.templ /web/conf/extra/httpd-ssl.conf < /config/active
