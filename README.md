@@ -8,8 +8,8 @@ Uses mgmt_cli to fetch names and IPs of gateways or cluster members from Check P
 ### [backup-gaia-mgmt.sh](backup-gaia-mgmt.sh)
 Enhanced management server backup. Does backup AND export, adds version info, gaia config and some directories to a tgz and copies the bundle using scp to a given backup server.
 
-### [check_ssl_ciphers.sh](check_ssl_ciphers.sh)
-Uses cpopenssl to quick-check ciphers on a given IP address
+### [ciphercheck.sh](ciphercheck.sh)
+Uses web api to query all cluster members and openssl to check tls ciphers on all of them
 
 ### [create_broadcast_objects.sh](create_broadcast_objects.sh)
 Ever had to create a network group containing broadcast objects on a gateway with 100+ VLAN interfaces? This is for you. ;)
