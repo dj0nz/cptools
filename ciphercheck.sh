@@ -3,6 +3,12 @@
 # Check Point Firewall SSL Cipher Check
 # Reads cluster members from database and checks SSL ciphers
 #
+# Requirements:
+# - A Linux box with https access to both firewall management and all managed firewalls
+# - Tools: openssl, curl, gpg, jq
+# - An API user with appropriate permissions at the Check Point management server
+# - API key stored in a local file, symmetrically encrypted with gpg
+#
 # Fun fact: Check Point has a ... special wording for rotten ciphers:
 # https://support.checkpoint.com/results/sk/sk147272
 #
@@ -10,20 +16,21 @@
 # SSLCipherSuite HIGH:!RC4:!LOW:!EXP:!aNULL:!SSLv2:!MD5
 # SSLProtocol -ALL {ifcmp = $httpd:ssl3_enabled 1}+{else}-{endif}SSLv3 +TLSv1.3 +TLSv1.2
 #
-# :facepalm:
+# Not a ciphersuite I would expect on a security product.
 # 
-# I would use:
+# I would rather use:
 # SSLCipherSuite ECDHE-RSA-AES256-SHA384:AES256-SHA256:!ADH:!EXP:RSA:+HIGH:!MEDIUM:!MD5:!LOW:!NULL:!SSLv2:!eNULL:!aNULL:!RC4:!SHA1
 # SSLProtocol +TLSv1.2 +TLSv1.3
 #
-# BUT: As soon as you enable VPN Blade / Remote Access, you're in rotten cipher hell again...
+# See sk cited above how to change (or wait a bit...).
+# But be aware: As soon as you enable VPN Blade / Remote Access, you're in rotten cipher hell again...
 
 # dj0Nz jun 2023
 
 # Get a list of all locally available ciphers ($1) with protocol ($2)
 OPENSSL_BIN=$(which openssl)
 if [[ $OPENSSL_BIN ]]; then
-    CIPHERS=($(openssl ciphers -v | awk '{print $1 ":" $2}'))
+    CIPHERS=($($OPENSSL_BIN ciphers -v | awk '{print $1 ":" $2}'))
     for CIPHER in ${CIPHERS[@]}; do
         CHECK=$(echo $CIPHER | grep -E 'TLS|SSL')
         if [[ ! $CHECK ]]; then
@@ -33,6 +40,23 @@ if [[ $OPENSSL_BIN ]]; then
     done
 else
     echo "No openssl binary found. Exiting."
+    exit 1
+fi
+
+# Check other requirements
+CURL_BIN=$(which curl)
+if [[ ! $$CURL_BIN ]]; then
+    echo "Curl binary not found. Exiting."
+    exit 1
+fi
+GPG_BIN=$(which gpg)
+if [[ ! $GPG_BIN ]]; then
+    echo "Gpg binary not found. Exiting."
+    exit 1
+fi
+JQ_BIN=$(which jq)
+if [[ ! $JQ_BIN ]]; then
+    echo "Jq binary not found. Exiting."
     exit 1
 fi
 
@@ -53,19 +77,19 @@ fi
 
 # API key decrypt section. Note: Reading the decryption passphrase using a read call may be considered unsafe, 
 # but AFAIK there's no other way if you want to customize the "enter passphrase" prompt...
-# The safer default: API_KEY=`gpg --pinentry-mode=loopback --no-symkey-cache -qd $CP_API_KEY_ENC 2>/dev/null`
+# The safer default: API_KEY=$(gpg --pinentry-mode=loopback --no-symkey-cache -qd $CP_API_KEY_ENC 2>/dev/null)
 read -r -s -p 'Enter API key decryption passphrase: ' DECPASS
-API_KEY=$(gpg --pinentry-mode=loopback --no-symkey-cache --batch --passphrase "$DECPASS" -qd $CP_API_KEY_ENC 2>/dev/null)
+API_KEY=$($GPG_BIN --pinentry-mode=loopback --no-symkey-cache --batch --passphrase "$DECPASS" -qd $CP_API_KEY_ENC 2>/dev/null)
 echo ""
 DECPASS=""
 
 # API login to Check Point management.
-SESSION_ID=$(curl -X POST -H "content-Type: application/json" --silent -k https://$CP_MGMT/web_api/login -d '{ "api-key" : "'$API_KEY'" }' | jq -r .sid)
+SESSION_ID=$($CURL_BIN -X POST -H "content-Type: application/json" --silent -k https://$CP_MGMT/web_api/login -d '{ "api-key" : "'$API_KEY'" }' | $JQ_BIN -r .sid)
 
 # Get Check Point cluster object names and extract cluster member names and ip addresses from cluster definition
-CLUSTERS=$(curl -X POST -H "Content-Type: application/json" -H "X-chkp-sid:$SESSION_ID" --silent -k https://$CP_MGMT:443/web_api/show-simple-clusters -d ' { }'| jq -r '.objects[].name')
+CLUSTERS=$($CURL_BIN -X POST -H "Content-Type: application/json" -H "X-chkp-sid:$SESSION_ID" --silent -k https://$CP_MGMT:443/web_api/show-simple-clusters -d ' { }'| $JQ_BIN -r '.objects[].name')
 for CLUSTER in $CLUSTERS; do
-    MEMBERS=$(curl -X POST -H "Content-Type: application/json" -H "X-chkp-sid:$SESSION_ID" --silent -k https://$CP_MGMT:443/web_api/show-simple-cluster -d '{ "name" : "'$CLUSTER'" }' | jq -r '."cluster-members"[] | [."name", ."ip-address"] | @csv' | tr -d '"')
+    MEMBERS=$($CURL_BIN -X POST -H "Content-Type: application/json" -H "X-chkp-sid:$SESSION_ID" --silent -k https://$CP_MGMT:443/web_api/show-simple-cluster -d '{ "name" : "'$CLUSTER'" }' | $JQ_BIN -r '."cluster-members"[] | [."name", ."ip-address"] | @csv' | tr -d '"')
 done 
 
 # Loop through cluster member list and check available ciphers
@@ -79,7 +103,7 @@ for MEMBER in $MEMBERS; do
         continue
     else
         # Check if host supports TLSv1.3
-        TLS13=$(echo Q | timeout 2 openssl s_client -connect $MEMBER_IP:443 -tls1_3 2>/dev/null | grep New | grep 1.3)
+        TLS13=$(echo Q | timeout 2 $OPENSSL_BIN s_client -connect $MEMBER_IP:443 -tls1_3 2>/dev/null | grep New | grep 1.3)
         echo ""
         echo "Gateway: $MEMBER_NAME"
         for INDEX in ${CIPHERS[@]}; do
@@ -90,11 +114,11 @@ for MEMBER in $MEMBERS; do
             if [[ "$PIDX" == "TLSv1.3" ]]; then
                 if [[ $TLS13 ]]; then
 	                # Command returns a line containing protocol and cipher. Uppercase "Q" terminates the request.
-	                LINE=$(echo Q | timeout 2 openssl s_client -connect $MEMBER_IP:443 -ciphersuites $CIDX 2>/dev/null | grep ^New)
+	                LINE=$(echo Q | timeout 2 $OPENSSL_BIN s_client -connect $MEMBER_IP:443 -ciphersuites $CIDX 2>/dev/null | grep ^New)
 	            fi
             else
 	            # The no_tls1_3 switch is needed to prevent fallback to "better" ciphers
-                LINE=$(echo Q | timeout 2 openssl s_client -connect $MEMBER_IP:443 -no_tls1_3 -cipher $CIDX 2>/dev/null | grep ^New)
+                LINE=$(echo Q | timeout 2 $OPENSSL_BIN s_client -connect $MEMBER_IP:443 -no_tls1_3 -cipher $CIDX 2>/dev/null | grep ^New)
             fi
             # Prettify output (or ease further processing)
             if [[ ! "$LINE" =~ "NONE" ]]; then
@@ -111,7 +135,7 @@ done
 echo ""
 
 # Logout
-LOGOUT_MSG=$(curl -X POST -H "content-Type: application/json" -H "X-chkp-sid:$SESSION_ID" --silent -k https://$CP_MGMT/web_api/logout -d '{ }' | jq -r '."message"')
+LOGOUT_MSG=$($CURL_BIN -X POST -H "content-Type: application/json" -H "X-chkp-sid:$SESSION_ID" --silent -k https://$CP_MGMT/web_api/logout -d '{ }' | $JQ_BIN -r '."message"')
 if [[ ! "$LOGOUT_MSG" = "OK" ]]; then
     echo "Logout unsuccessful. Consider doing a manual logout."
 fi
