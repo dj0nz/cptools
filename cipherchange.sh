@@ -2,12 +2,14 @@
 
 # This script has to be run on a Check Point firewall management server
 # It does:
+#
 # - query Check Point database for gateway clusters 
 # - query cluster objects for members and store their names and ips in an array
 # - use CPRID to copy a local script to every gateway
-# - use CPRID to execute this script locally on the gateway
+# - use CPRID to execute this script locally on all gateways in the list
 # 
-# The script file is needed on the management server at $CHANGE_SCRIPT location with following contents:
+# A script file is needed on the management server at $CHANGE_SCRIPT location with following contents:
+# 
 # <code>
 # #!/bin/bash
 # cp /web/templates/httpd-ssl.conf.templ /web/templates/httpd-ssl.conf.templ_ORIGINAL
@@ -19,13 +21,16 @@
 # </code>
 # 
 # See https://support.checkpoint.com/results/sk/sk147272 for explanation
+#
+# To check ciphers afterwards, use the ciphercheck script.
 # dj0Nz jun 2023
 
-# Load Check Point environment
+# Load Check Point environment vars
 . /etc/profile.d/CP.sh
 
-# The Check Point Remote Installation Daemon. Nice tool. Listens on 18208/tcp. Authentication with SIC certificate.
+# The Check Point Remote Installation Daemon. Nice tool. Listens on 18208/tcp, authenticates with SIC certificate.
 PORT=18208
+
 # Script with content shown above. Should exist in the named directory.
 CHANGE_SCRIPT=/home/admin/change-ssl-ciphers.sh
 if [[ ! -f $CHANGE_SCRIPT ]]; then
@@ -40,18 +45,19 @@ for CLUSTER in "${CLUSTERS[@]}"; do
     GW_LIST+=($(mgmt_cli -r true show simple-cluster name "$CLUSTER" --format json | jq -r '."cluster-members"[] | [."name", ."ip-address"] | @csv' | tr -d '"'))
 done
 
+# Loop through gateway list and do the cipher-change-stuff...
 for GW in "${GW_LIST[@]}"; do
-    # split gateway name / ip
+    # Split gateway name / ip
     GW_IP=$(echo $GW | cut -d ',' -f2)
     GW_NAME=$(echo $GW | cut -d ',' -f1)
     # Check if CPRID port open
     OPEN=`timeout 3 bash -c "</dev/tcp/$GW_IP/$PORT" 2>/dev/null && echo "Open" || echo "Closed"`
     if [[ "$OPEN" = "Open" ]]; then
-        printf "%-17s %s\n" "$GW_NAME: " "Changing SSL/TLS ciphers"
+        printf "%-10s %s\n" "$GW_NAME: " "Changing SSL/TLS ciphers"
         # copy local script to remote machine and execute. Check ciphers afterwards and smile.
         $CPDIR/bin/cprid_util -server $GW_IP putfile -local_file $CHANGE_SCRIPT -remote_file $CHANGE_SCRIPT -perms 700 > /dev/null
         $CPDIR/bin/cprid_util -server $GW_IP -verbose rexec -rcmd $CHANGE_SCRIPT > /dev/null   
     else
-        printf "%-17s %s\n" "$GW_NAME: " "Unreachable"
+        printf "%-10s %s\n" "$GW_NAME: " "Unreachable"
     fi
 done
