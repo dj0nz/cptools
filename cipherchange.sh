@@ -32,7 +32,7 @@
 PORT=18208
 
 # Script with content shown above. Should exist in the named directory.
-CHANGE_SCRIPT=/home/admin/change-ssl-ciphers.sh
+CHANGE_SCRIPT=/home/admin/gw-cipher-mod.sh
 if [[ ! -f $CHANGE_SCRIPT ]]; then
     echo "Change script not found. Exiting."
     exit 1
