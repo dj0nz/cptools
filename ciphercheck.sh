@@ -22,7 +22,7 @@
 # SSLCipherSuite ECDHE-RSA-AES256-SHA384:AES256-SHA256:!ADH:!EXP:RSA:+HIGH:!MEDIUM:!MD5:!LOW:!NULL:!SSLv2:!eNULL:!aNULL:!RC4:!SHA1
 # SSLProtocol +TLSv1.2 +TLSv1.3
 #
-# See sk cited above how to change or use change-gw-tls-ciphers.sh.
+# See sk cited above how to change or use cipherchange.sh in this repo.
 # But be aware: As soon as you enable VPN Blade / Remote Access, you're in rotten cipher hell again...
 
 # dj0Nz jun 2023
