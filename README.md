@@ -9,7 +9,10 @@ Uses mgmt_cli to fetch names and IPs of gateways or cluster members from Check P
 Enhanced management server backup. Does backup AND export, adds version info, gaia config and some directories to a tgz and copies the bundle using scp to a given backup server.
 
 ### [ciphercheck.sh](ciphercheck.sh)
-Uses web api to query all cluster members and openssl to check tls ciphers on all of them
+Runs on a admin workstation and uses web api to query all gateway cluster members from management server, then openssl to check tls ciphers on all of them
+
+### [cipherchange.sh](cipherchange.sh)
+Runs on Check Point management server and uses mgmt API and CPRID to change tls ciphers on all mamaged firewall cluster members. Sorry for ignoring single gateways. xD
 
 ### [create_broadcast_objects.sh](create_broadcast_objects.sh)
 Ever had to create a network group containing broadcast objects on a gateway with 100+ VLAN interfaces? This is for you. ;)
