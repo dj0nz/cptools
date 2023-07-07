@@ -38,12 +38,8 @@ if [[ ! -f $CHANGE_SCRIPT ]]; then
     exit 1
 fi
 
-# Get list of clusters
-CLUSTERS=($(mgmt_cli -r true show simple-clusters --format json | jq -r '.objects[].name'))
-for CLUSTER in "${CLUSTERS[@]}"; do
-    # Add every cluster members name and ip address to list (in csv format)
-    GW_LIST+=($(mgmt_cli -r true show simple-cluster name "$CLUSTER" --format json | jq -r '."cluster-members"[] | [."name", ."ip-address"] | @csv' | tr -d '"'))
-done
+# Get list of cluster members, add name and ip address to list (in csv format)
+GW_LIST+=($(mgmt_cli -r true show gateways-and-servers details-level full -f json | jq -r '.objects[] | select (."type" == "cluster-member") | [.["name"], .["ipv4-address"]] | @csv' | tr -d '"'))
 
 # Loop through gateway list and do the cipher-change-stuff...
 for GW in "${GW_LIST[@]}"; do
