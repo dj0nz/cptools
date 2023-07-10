@@ -3,8 +3,7 @@
 # This script has to be run on a Check Point firewall management server
 # It does:
 #
-# - query Check Point database for gateway clusters 
-# - query cluster objects for members and store their names and ips in an array
+# - query Check Point database for gateways and store their names and ips in an array
 # - use CPRID to copy a local script to every gateway
 # - use CPRID to execute this script locally on all gateways in the list
 # 
@@ -38,8 +37,8 @@ if [[ ! -f $CHANGE_SCRIPT ]]; then
     exit 1
 fi
 
-# Get list of cluster members, add name and ip address to list (in csv format)
-GW_LIST+=($(mgmt_cli -r true show gateways-and-servers details-level full -f json | jq -r '.objects[] | select (."type" == "cluster-member") | [.["name"], .["ipv4-address"]] | @csv' | tr -d '"'))
+# Get list of gateways, add name and ip address to list (in csv format)
+GW_LIST+=($(mgmt_cli -r true show gateways-and-servers details-level full -f json | jq -r '.objects[] | select ((."type" == "cluster-member") or (."type" == "simple-gateway")) | [.["name"], .["ipv4-address"]] | @csv' | tr -d '"'))
 
 # Loop through gateway list and do the cipher-change-stuff...
 for GW in "${GW_LIST[@]}"; do
