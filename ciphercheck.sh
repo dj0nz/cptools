@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Check Point Firewall SSL Cipher Check
-# Reads cluster members from database and checks SSL ciphers
+# Reads gateways from database and checks SSL ciphers
 #
 # Requirements:
 # - A Linux box with https access to both firewall management and all managed firewalls
@@ -86,26 +86,24 @@ DECPASS=""
 # API login to Check Point management.
 SESSION_ID=$($CURL_BIN -X POST -H "content-Type: application/json" --silent -k https://$CP_MGMT/web_api/login -d '{ "api-key" : "'$API_KEY'" }' | $JQ_BIN -r .sid)
 
-# Get Check Point cluster object names and extract cluster member names and ip addresses from cluster definition
-CLUSTERS=$($CURL_BIN -X POST -H "Content-Type: application/json" -H "X-chkp-sid:$SESSION_ID" --silent -k https://$CP_MGMT:443/web_api/show-simple-clusters -d ' { }'| $JQ_BIN -r '.objects[].name')
-for CLUSTER in $CLUSTERS; do
-    MEMBERS+=($($CURL_BIN -X POST -H "Content-Type: application/json" -H "X-chkp-sid:$SESSION_ID" --silent -k https://$CP_MGMT:443/web_api/show-simple-cluster -d '{ "name" : "'$CLUSTER'" }' | $JQ_BIN -r '."cluster-members"[] | [."name", ."ip-address"] | @csv' | tr -d '"'))
-done 
+# Get Check Point gateway names and ip addresses from management database
+GW_LIST+=($($CURL_BIN -X POST -H "Content-Type: application/json" -H "X-chkp-sid:$SESSION_ID" --silent -k https://$CP_MGMT:443/web_api/show-gateways-and-servers -d '{ "details-level" : "full" }' | $JQ_BIN -r '."objects"[] | select ((."type" == "cluster-member") or (."type" == "simple-gateway")) | [.["name"], .["ipv4-address"]] | @csv' | tr -d '"'))
 
-# Loop through cluster member list and check available ciphers
-for MEMBER in "${MEMBERS[@]}"; do
-    MEMBER_IP=$(echo $MEMBER | cut -d ',' -f2)
-    MEMBER_NAME=$(echo $MEMBER | cut -d ',' -f1)
+# Loop through gateway list and check available ciphers
+for GW in "${GW_LIST[@]}"; do
+    GW_IP=$(echo $GW | cut -d ',' -f2)
+    GW_NAME=$(echo $GW | cut -d ',' -f1)
     # Don't try if port not open
-    OPEN=$(timeout 3 bash -c "</dev/tcp/$MEMBER_IP/443" 2>/dev/null && echo "Open")
+    OPEN=$(timeout 3 bash -c "</dev/tcp/$GW_IP/443" 2>/dev/null && echo "Open")
     if [[ ! "$OPEN" = "Open" ]]; then
-        echo "Host $MEMBER_NAME unreachable"
+        echo ""
+        echo "Host $GW_NAME unreachable"
         continue
     else
         # Check if host supports TLSv1.3
-        TLS13=$(echo Q | timeout 2 $OPENSSL_BIN s_client -connect $MEMBER_IP:443 -tls1_3 2>/dev/null | grep New | grep 1.3)
+        TLS13=$(echo Q | timeout 2 $OPENSSL_BIN s_client -connect $GW_IP:443 -tls1_3 2>/dev/null | grep New | grep 1.3)
         echo ""
-        echo "Gateway: $MEMBER_NAME"
+        echo "Gateway: $GW_NAME"
         for INDEX in ${CIPHERS[@]}; do
             # Extract cipher and protocol from current cipher/protocol string
             CIDX=$(echo $INDEX | awk -F ":" '{print $1}')
@@ -114,11 +112,11 @@ for MEMBER in "${MEMBERS[@]}"; do
             if [[ "$PIDX" == "TLSv1.3" ]]; then
                 if [[ $TLS13 ]]; then
 	                # Command returns a line containing protocol and cipher. Uppercase "Q" terminates the request.
-	                LINE=$(echo Q | timeout 2 $OPENSSL_BIN s_client -connect $MEMBER_IP:443 -ciphersuites $CIDX 2>/dev/null | grep ^New)
+	                LINE=$(echo Q | timeout 2 $OPENSSL_BIN s_client -connect $GW_IP:443 -ciphersuites $CIDX 2>/dev/null | grep ^New)
 	            fi
             else
 	            # The no_tls1_3 switch is needed to prevent fallback to "better" ciphers
-                LINE=$(echo Q | timeout 2 $OPENSSL_BIN s_client -connect $MEMBER_IP:443 -no_tls1_3 -cipher $CIDX 2>/dev/null | grep ^New)
+                LINE=$(echo Q | timeout 2 $OPENSSL_BIN s_client -connect $GW_IP:443 -no_tls1_3 -cipher $CIDX 2>/dev/null | grep ^New)
             fi
             # Prettify output (or ease further processing)
             if [[ ! "$LINE" =~ "NONE" ]]; then
