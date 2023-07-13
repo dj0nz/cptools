@@ -118,6 +118,7 @@ if [[ $NUMGWS -gt 0 ]]; then
     GW_LIST+=($($JQ_BIN -r '."objects"[] | select ((."type" == "cluster-member") or (."type" == "simple-gateway")) | [.["name"], .["ipv4-address"]] | @csv' $OBJECTS | tr -d '"'))
     rm $OBJECTS
 else
+    echo ""
     echo "No gateways found in Check Point database. Check $OBJECTS file for API request output."
     exit 1
     LOGOUT_MSG=$($CURL_BIN -X POST -H "content-Type: application/json" -H "X-chkp-sid:$SESSION_ID" --silent -k https://$CP_MGMT/web_api/logout -d '{ }' | $JQ_BIN -r '."message"')
@@ -137,6 +138,7 @@ echo "SSL Cipher scan `date`" > $LOGFILE
 echo "Checking ciphers on gateways:"
 echo ""
 
+# Sort of counter: there's at least one gateway with non-compliant ciphers if > 0
 UNSAFE_GWS=0
 
 # Loop through gateway list and check available ciphers
