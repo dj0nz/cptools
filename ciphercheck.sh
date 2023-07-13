@@ -1,13 +1,14 @@
 #!/bin/bash
 
 # Check Point Firewall SSL Cipher Check
-# Reads gateways from database and checks SSL ciphers
+# Runs on a linux client, reads a list of all gateways from Check Point management database and checks SSL ciphers on the gateways
 #
 # Requirements:
-# - A Linux box with https access to both firewall management and all managed firewalls
-# - Tools: openssl, curl, gpg, jq
-# - An API user with appropriate permissions at the Check Point management server
-# - API key stored in a local file, symmetrically encrypted with gpg
+#
+# - This script should be run on a Linux box with https access to both firewall management and all managed firewalls
+# - Tools needed locally: openssl, curl, gpg, jq
+# - An API user with appropriate permissions (read all is enough) at the Check Point management server
+# - API key stored in a local file ($CP_API_KEY_ENC), symmetrically encrypted with gpg
 #
 # Fun fact: Check Point has a ... special wording for rotten ciphers:
 # https://support.checkpoint.com/results/sk/sk147272
@@ -75,6 +76,10 @@ if [[ ! -f $CP_API_KEY_ENC ]]; then
     exit 1
 fi
 
+echo "Gateway cipher check script"
+echo ""
+echo "Decrypting API key and logging in to Check Point Management"
+
 # API key decrypt section. Note: Reading the decryption passphrase using a read call may be considered unsafe, 
 # but AFAIK there's no other way if you want to customize the "enter passphrase" prompt...
 # The safer default: API_KEY=$(gpg --pinentry-mode=loopback --no-symkey-cache -qd $CP_API_KEY_ENC 2>/dev/null)
@@ -83,11 +88,56 @@ API_KEY=$($GPG_BIN --pinentry-mode=loopback --no-symkey-cache --batch --passphra
 echo ""
 DECPASS=""
 
+# Temporary file to store session information
+SESSION_INFO=session-info.txt
 # API login to Check Point management.
-SESSION_ID=$($CURL_BIN -X POST -H "content-Type: application/json" --silent -k https://$CP_MGMT/web_api/login -d '{ "api-key" : "'$API_KEY'" }' | $JQ_BIN -r .sid)
+$CURL_BIN -X POST -H "content-Type: application/json" --silent -k https://$CP_MGMT/web_api/login -d '{ "api-key" : "'$API_KEY'" }' > $SESSION_INFO
+# Grab session id from login file
+SESSION_ID=$($JQ_BIN -r '.sid | select( . != null )' $SESSION_INFO)
+# Proceed only if login successful
+if [[ ! $SESSION_ID ]]; then
+    echo ""
+    echo "Login failed. Check $SESSION_INFO file"
+    exit 1
+else
+    rm $SESSION_INFO
+fi
+
+echo ""
+echo "Getting gateway objects and checking https access. Please wait..."
+echo ""
 
 # Get Check Point gateway names and ip addresses from management database
-GW_LIST+=($($CURL_BIN -X POST -H "Content-Type: application/json" -H "X-chkp-sid:$SESSION_ID" --silent -k https://$CP_MGMT:443/web_api/show-gateways-and-servers -d '{ "details-level" : "full" }' | $JQ_BIN -r '."objects"[] | select ((."type" == "cluster-member") or (."type" == "simple-gateway")) | [.["name"], .["ipv4-address"]] | @csv' | tr -d '"'))
+# store api request output to temporary file
+OBJECTS=gwlist.json
+$CURL_BIN -X POST -H "Content-Type: application/json" -H "X-chkp-sid:$SESSION_ID" --silent -k https://$CP_MGMT:443/web_api/show-gateways-and-servers -d '{ "details-level" : "full", "limit" : "500" }' -o $OBJECTS
+# Check number of gateways in output...
+NUMGWS=$($JQ_BIN -r '."objects"[] | select ((."type" == "cluster-member") or (."type" == "simple-gateway")) | ."name"' gwlist.json 2>/dev/null | wc -l)
+# ...and proceed only if gateways found
+if [[ $NUMGWS -gt 0 ]]; then
+    GW_LIST+=($($JQ_BIN -r '."objects"[] | select ((."type" == "cluster-member") or (."type" == "simple-gateway")) | [.["name"], .["ipv4-address"]] | @csv' $OBJECTS | tr -d '"'))
+    rm $OBJECTS
+else
+    echo "No gateways found in Check Point database. Check $OBJECTS file for API request output."
+    exit 1
+    LOGOUT_MSG=$($CURL_BIN -X POST -H "content-Type: application/json" -H "X-chkp-sid:$SESSION_ID" --silent -k https://$CP_MGMT/web_api/logout -d '{ }' | $JQ_BIN -r '."message"')
+    if [[ ! "$LOGOUT_MSG" = "OK" ]]; then
+        echo "Logout unsuccessful. Consider doing a manual logout."
+    fi
+fi
+
+# Log ciphers found on gateway to file
+LOGFILE=gatewayciphers.txt
+if [[ -f $LOGFILE ]]; then
+    rm $LOGFILE
+fi
+touch $LOGFILE
+echo "SSL Cipher scan `date`" > $LOGFILE
+
+echo "Checking ciphers on gateways:"
+echo ""
+
+UNSAFE_GWS=0
 
 # Loop through gateway list and check available ciphers
 for GW in "${GW_LIST[@]}"; do
@@ -102,8 +152,8 @@ for GW in "${GW_LIST[@]}"; do
     else
         # Check if host supports TLSv1.3
         TLS13=$(echo Q | timeout 2 $OPENSSL_BIN s_client -connect $GW_IP:443 -tls1_3 2>/dev/null | grep New | grep 1.3)
-        echo ""
-        echo "Gateway: $GW_NAME"
+        echo "$GW_NAME:" >> $LOGFILE
+        UNSAFE=0
         for INDEX in ${CIPHERS[@]}; do
             # Extract cipher and protocol from current cipher/protocol string
             CIDX=$(echo $INDEX | awk -F ":" '{print $1}')
@@ -118,20 +168,35 @@ for GW in "${GW_LIST[@]}"; do
 	            # The no_tls1_3 switch is needed to prevent fallback to "better" ciphers
                 LINE=$(echo Q | timeout 2 $OPENSSL_BIN s_client -connect $GW_IP:443 -no_tls1_3 -cipher $CIDX 2>/dev/null | grep ^New)
             fi
-            # Prettify output (or ease further processing)
+            # Prettify output 
             if [[ ! "$LINE" =~ "NONE" ]]; then
 	            AR_LINE=(${LINE// / }) 
 	            PROTO=$(echo ${AR_LINE[1]} | sed 's/,//')
 	            CIPHER=${AR_LINE[4]}
 	            if [[ $CIPHER ]]; then
-	                printf "%-8s %s\n" "$PROTO" "$CIPHER"
+	                printf "%-8s %s\n" "$PROTO" "$CIPHER" >> $LOGFILE
+                    if [[ ! "$PROTO" = "TLSv1.2" ]]; then
+                        let "UNSAFE+=1"
+                    fi
 	            fi
             fi
         done
+        echo "" >> $LOGFILE
+        if [[ $UNSAFE -gt 0 ]]; then
+            printf "%-15s %s\n" "$GW_NAME:" "Non-compliant ciphers."
+	    let "UNSAFE_GWS+=1"
+        else
+            printf "%-15s %s\n" "$GW_NAME:" "OK"
+        fi
     fi
 done
 echo ""
 
+if [[ $UNSAFE_GWS -gt 0 ]]; then
+    echo "Gateway with non-compliant ciphers found. See $LOGFILE file for details."
+    echo ""
+fi
+ 
 # Logout
 LOGOUT_MSG=$($CURL_BIN -X POST -H "content-Type: application/json" -H "X-chkp-sid:$SESSION_ID" --silent -k https://$CP_MGMT/web_api/logout -d '{ }' | $JQ_BIN -r '."message"')
 if [[ ! "$LOGOUT_MSG" = "OK" ]]; then
