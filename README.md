@@ -37,3 +37,6 @@ Modify cluster topology before moving VLANs to bond interface. Runs on managemen
 
 ### [gaia_api_poc.py](gaia_api_poc.py)
 Modification of the web service example at the Gaia Api documentation page, which is just unusable out-of-the-box... :-/
+
+### [compare-fingerprints.sh](compare-fingerprints.sh)
+Compare LDAPS fingerprints in Check Point Account Unit with "real" LDAPS fingerprints from Domain Controllers
