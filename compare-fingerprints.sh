@@ -1,7 +1,14 @@
 #!/usr/bin/bash
-
+#
+# Purpose:
 # Compare LDAPS fingerprint in Check Point Management DB with "real" fingerprint of LDAP Account Unit / Domain Controller
 # Just a POC to demonstrate functionality, works if you have ONE server in Account Unit, but you may loop through servers array you get with "show-generic-objects" request
+#
+# Requirements:
+# - A current linux box with curl, openssl and jq installed
+# - Firewall rules that allow https access to the Check Point management server and ldaps access the the domain controllers
+# - An API key on the Check Point management and Gui client access allowed for the linux box
+#
 # dj0Nz Feb 2024
 
 # Check Point management server IP
@@ -27,7 +34,8 @@ fi
 
 # Get account unit object information using show-generic-objects request and store to $OUTFILE
 curl -X POST -H "content-Type: application/json" -H "X-chkp-sid:$SESSION_ID" --silent -k https://$CP_MGMT/web_api/show-generic-objects -d '{ "name" : "'$ACCOUNT_UNIT'",  "details-level" : "full" }' -o $OUTFILE
-# Get LDAPS fingerprint
+
+# Get LDAPS fingerprint. Attention: If you have multiple ldap servers configured, you will have to loop through the ldapServers array.
 CP_FPRINT=$(jq -r '.objects[]|.ldapServers[]|."ldapSslSettings"|."ldapSslFingerprints"' $OUTFILE)
 # Get Server UID
 SERVER_UID=$(jq -r '.objects[]|.ldapServers[]|.server' $OUTFILE)
