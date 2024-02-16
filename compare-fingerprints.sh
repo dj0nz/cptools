@@ -45,9 +45,7 @@ SERVER_IP=$(curl -X POST -H "content-Type: application/json" -H "X-chkp-sid:$SES
 SERVER_FPRINT=$(echo -n | openssl s_client -connect $SERVER_IP:636 2>/dev/null | openssl x509 -noout -fingerprint -md5 | cut -f2 -d'=')
 
 # Output: Warn if fingerprints dont match which normally means that certificate has been renewed
-if [[ "$CP_FPRINT" = "$SERVER_FPRINT" ]]; then
-    echo "Ok"
-else
+if [[ ! "$CP_FPRINT" = "$SERVER_FPRINT" ]]; then
     echo "Fingerprint don't match. Refetch!"
 fi
 
