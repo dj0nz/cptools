@@ -40,3 +40,6 @@ Modification of the web service example at the Gaia Api documentation page, whic
 
 ### [compare-fingerprints.sh](compare-fingerprints.sh)
 Compare LDAPS fingerprints in Check Point Account Unit with "real" LDAPS fingerprints from Domain Controllers
+
+### [export-rulebase.py](export-rulebase.py)
+Export given rulebase to json file. Just some kind of exercise...
