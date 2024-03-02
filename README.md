@@ -43,3 +43,6 @@ Compare LDAPS fingerprints in Check Point Account Unit with "real" LDAPS fingerp
 
 ### [export-rulebase.py](export-rulebase.py)
 Export given rulebase to json file. Just some kind of exercise...
+
+### [parse-cisco.py](parse-cisco.py)
+Parse Cisco IOS named ACL and so something with it. Intended use: Import objects and rules. Work in progress!
