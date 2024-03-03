@@ -93,7 +93,6 @@ except IndexError:
     quit('No input.')
 
 # see api documentation for explanation of limit and offset settings. below values for them are defaults. 
-# you may use regex elements in the filter expression on the command line (e.g. ^searchpattern$) for exact matching
 payload = { 
   "limit" : 5, 
   "offset" : 0, 
