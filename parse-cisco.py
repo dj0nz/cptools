@@ -18,7 +18,7 @@ import re, ipaddress, json
 infile = 'acl.txt'
 
 # Output files (should ;)) contain Check Point API commands to import objects or rules 
-objects_out = 'network-objects.txt'
+objects_out = 'netobjects.txt'
 rules_out = 'rules.txt'
 
 # Lists for network objects and rules
@@ -101,7 +101,7 @@ def get_src_dst (acl_local,netobjects_local):
     return(src_local,dst_local)
 
 # Function: Convert Cisco ip acl to "any" rule
-def create_ip_rule (name_local,acl_local,netobjects_local):
+def create_ip_rule (acl_local,netobjects_local):
 
     rule_local = []
 
@@ -123,7 +123,7 @@ def create_ip_rule (name_local,acl_local,netobjects_local):
     return(rule_local)
 
 # Function: Convert Cisco icmp acl
-def create_icmp_rule (name_local,acl_local,netobjects_local):
+def create_icmp_rule (acl_local,netobjects_local):
 
     rule_local = []
 
@@ -169,7 +169,7 @@ def create_icmp_rule (name_local,acl_local,netobjects_local):
     return(rule_local)
 
 # Function: Convert Cisco tcp/udp acl
-def create_tcpudp_rule(name_local,acl_local,netobjects_local):
+def create_tcpudp_rule(acl_local,netobjects_local):
 
     rule_local = []
 
@@ -188,6 +188,7 @@ def create_tcpudp_rule(name_local,acl_local,netobjects_local):
     destination = srcdst[1]
 
     # get service operator (eq,lt,gt,neq,range)
+    operator = ''
     if source == 'any':
         if destination == 'any':
             try:
@@ -283,8 +284,6 @@ for line in ciscoacls:
     # Acls for "established" connections
     established = re.search(established_pattern, line)
     if established:
-        # removing list entry does not work reliably, check later
-        # ciscoacls.remove(line)
         continue
     # Acls for ospf connections
     ospf = re.search(ospf_pattern, line)
@@ -297,8 +296,10 @@ for line in ciscoacls:
         if acl[3] == 'range':
             continue
     # Rules with source port and source host set 
-    if acl[2] == 'host':
+    if not (acl[2] == 'any'):
         if acl[4] == 'eq':
+            continue
+        if acl[4] == 'range':
             continue
     # Any-Any rules ("permit ip any any")
     if len(acl) == 4:
@@ -339,7 +340,7 @@ for line in ciscoacls:
     ####
 
     # store filtered version of ciscoacls
-    acl.append(rule_name)
+    #acl.append(rule_name)
     ciscoacls_filtered.append(acl)
 
 ####
@@ -348,7 +349,7 @@ for line in ciscoacls:
 # Loop through filterd acl, ip (src/dst/any) rules first
 for acl in ciscoacls_filtered:
     if acl[1] == 'ip':
-        rule = create_ip_rule(rule_name,acl,netobjects)
+        rule = create_ip_rule(acl,netobjects)
         # Dont export "any-rules"
         if 'any' in rule[1] and 'any' in rule[2] and 'any' in rule[3]:
             skipped += 1
@@ -358,7 +359,7 @@ for acl in ciscoacls_filtered:
             else:
                 rules.append(rule)
 
-# Cleanup - does not work on all acls - why?
+# Remove rules already processed to save time -> does not work on all acls - why?
 for acl in ciscoacls_filtered:
     if acl[1] == 'ip':
         ciscoacls_filtered.remove(acl)
@@ -366,7 +367,7 @@ for acl in ciscoacls_filtered:
 # Loop through filterd acl, extract icmp rules
 for acl in ciscoacls_filtered:
     if acl[1] == 'icmp':
-        rule = create_icmp_rule(rule_name,acl,netobjects)
+        rule = create_icmp_rule(acl,netobjects)
         # Dont export "any-rules"
         if 'any' in rule[1] and 'any' in rule[2] and 'any' in rule[3]:
             skipped += 1
@@ -385,7 +386,7 @@ for acl in ciscoacls_filtered:
                     else:
                         rules.append(rule)
 
-# Cleanup - does not work on all acls - why?
+# Cleanup 
 for acl in ciscoacls_filtered:
     if acl[1] == 'icmp':
         ciscoacls_filtered.remove(acl)
@@ -401,7 +402,7 @@ for acl in ciscoacls_filtered:
             skipped += 1
             continue
         else:
-            rule = create_tcpudp_rule(rule_name,acl,netobjects)
+            rule = create_tcpudp_rule(acl,netobjects)
             # check if there is already an identical rule
             if is_dup(rule,rules):
                 skipped += 1
@@ -412,33 +413,34 @@ for acl in ciscoacls_filtered:
                 else:
                     rules.append(rule)
 
-# Cleanup - does not work on all acls - why?
-for acl in ciscoacls_filtered:
-    if acl[1] == 'udp' or acl[1] == 'tcp':
-        ciscoacls_filtered.remove(acl)
-
 # End of rules section
 ####
 
 ####
 # Output section
-# Screen output of objects, rules and acls for manual verification purposes
-# Will be same kind of json export in final version, maybe straight API commands with CP management...
-
-# Check list contents
+# Screen output of objects, rules and acls for manual verification purposes (uncomment below)
 print('#######################################')
 print('# Cisco to Check Point ACL Conversion #')
 print('#######################################')
 print()
-print('Raw ACLs:')
-print(*ciscoacls)
-print('---------------')
-print('Filtered ACLs:')
-print(*ciscoacls_filtered, sep = '\n')
-print('---------------')
-print('Network objects:')
-print(*netobjects, sep = '\n')
-print('---------------')
-print('Firewall rules:')
-print(*rules, sep = '\n')
-print('Skipped rules:',str(skipped))
+#print('Raw ACLs:')
+#print(*ciscoacls)
+#print('---------------')
+#print('Filtered ACLs:')
+#print(*ciscoacls_filtered, sep = '\n')
+#print('---------------')
+#print('Network objects:')
+#print(*netobjects, sep = '\n')
+#print('---------------')
+#print('Firewall rules:')
+#print(*rules, sep = '\n')
+#print('Skipped rules:',str(skipped))
+
+# output to files for further processing
+with open(objects_out, 'w+') as file:
+    file.writelines([netobject + '\n' for netobject in netobjects])
+with open(rules_out, 'w+') as output:
+    for rule in rules:
+        print(rule, file=output) 
+
+print('Rules and objects exported. Import using import-acl.py.')
