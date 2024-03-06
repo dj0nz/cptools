@@ -1,6 +1,6 @@
 #!/usr/bin/python3
 
-# Import filtered Cisco acls and objects to Check Point database
+# Import Cisco acls and objects exported with parse-acl.py to Check Point database
 # dj0Nz mar 2024
 
 # Modules needed to query mgmt api, parse input and format output 
@@ -39,7 +39,7 @@ service_replace = 'services.json'
 #                  in Cisco ACLs, a Check Point object gets created from IP and subnet mask
 # - netobjects_in: List temporarily needed for object creation 
 # - netobjects:    List that finally holds host and network objects
-# - rules:         Thats where ... guess what? ... yeah, right, that's the rules list
+# - rules:         Thats (surprise, surprise) the rules list
 service_table = []
 net2cp_table = []
 netobjects_in = []
@@ -48,7 +48,8 @@ rules = []
 
 # Shared layer for migrated rules
 # The idea behind is, to create all rules in a separate but shared layer in order to prevent 
-# interferences with existing rules
+# interferences with existing rules. Obviously, needs to be improved if amount of ACLs is high 
+# but mostly, there are no more than 200-300 ACLs if any.
 layer_name = 'Core'
 
 # Comment for every newly created object, also for firewall rules and layers
@@ -136,9 +137,6 @@ def service_exists(service_local,type_local,host_local,sid_local):
     else:
         print(response[1])
         quit('Unknown response in api call')
-
-# create firewall rule
-
 
 ##################
 ## main section
