@@ -45,7 +45,7 @@ Modification of the web service example at the Gaia Api documentation page, whic
 Export given rulebase to json file. Part of bigger project.
 
 ### [parse-acl.py](parse-acl.py)
-Parse Cisco IOS named ACL and so something with it. Intended use: Import objects and rules. Part one of an "Build Check Point ruleset from Cisco ACLs" project.
+Parse Cisco IOS named ACL and store satinized objects and rules files. Part one of an "Build Check Point ruleset from Cisco ACLs" project.
 
 ### [import-acl.py](import-acl.py)
 Part two: Read exported objects and rules and import them to a Check Port management as new shared layer (for easier integration in existing policies).
