@@ -39,7 +39,7 @@ Move existing VLAN interface from any eth (bond, tun, whatever) to a newly creat
 Modify cluster topology before moving VLANs to bond interface. Runs on management server.
 
 ### [gaia_api_poc.py](gaia_api_poc.py)
-Modification of the web service example at the official Gaia API documentation page.
+Enhanced version of the web service example at the official Gaia API documentation page.
 
 ### [export-rulebase.py](export-rulebase.py)
 Export given rulebase to json file. Part of bigger project.
