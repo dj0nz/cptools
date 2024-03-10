@@ -1,6 +1,6 @@
 ## My private Check Point knowledge base ##
 
-Scripts I used at work.
+Scripts I used at work. I ask for your indulgence with the Python scripts, I'm not a programmer and still a first grade student with Python...
 
 ### [add-gw-hostnames.sh](add-gw-hostnames.sh)
 Uses mgmt_cli to fetch names and IPs of gateways or cluster members from Check Point database and creates host name entries. 
@@ -18,7 +18,7 @@ Runs on Check Point management server and uses mgmt API and CPRID to change tls 
 Ever had to create a network group containing broadcast objects on a gateway with 100+ VLAN interfaces? This is for you. ;)
 
 ### [grid-import.sh](grid-import.sh)
-Get networks from Infoblox Grid Containers and create corresponding network objects in Check Point database. Uses REST API calls. Sort of POC.
+Get networks from Infoblox Grid Containers and create corresponding network objects in Check Point database. Uses REST API calls. Early version of a bigger framework I wrote for a customer.
 
 ### [gw-config-backup.sh](gw-config-backup.sh)
 Small script that runs on Check Point management server. Uses cprid_util to get Gaia config from all managed gateways and store the locally. Use together with the backup-gaia-mgmt script to have an almost complete backup of your Check Point environment.
@@ -29,6 +29,9 @@ The Logwork Orange (“Welly, welly, welly, welly, welly, welly, well. To what d
 ### [topocalc.sh](topocalc.sh)
 Runs on management and checks whether cluster topology matches the routing table on the gateway.
 
+### [compare-fingerprints.sh](compare-fingerprints.sh)
+Compare LDAPS fingerprints in Check Point Account Unit with "real" LDAPS fingerprints from Domain Controllers
+
 ### [eth2bond-gw.sh](eth2bond-gw.sh)
 Move existing VLAN interface from any eth (bond, tun, whatever) to a newly created bond interface. Avoids copy-paste-issues. Runs on gateway(s)
 
@@ -38,14 +41,14 @@ Modify cluster topology before moving VLANs to bond interface. Runs on managemen
 ### [gaia_api_poc.py](gaia_api_poc.py)
 Modification of the web service example at the Gaia Api documentation page, which is just unusable out-of-the-box... :-/
 
-### [compare-fingerprints.sh](compare-fingerprints.sh)
-Compare LDAPS fingerprints in Check Point Account Unit with "real" LDAPS fingerprints from Domain Controllers
-
 ### [export-rulebase.py](export-rulebase.py)
-Export given rulebase to json file. Just some kind of exercise...
+Export given rulebase to json file. Part of bigger project.
 
 ### [parse-acl.py](parse-acl.py)
-Parse Cisco IOS named ACL and so something with it. Intended use: Import objects and rules. Work in progress!
+Parse Cisco IOS named ACL and so something with it. Intended use: Import objects and rules. Part one of an "Build Check Point ruleset from Cisco ACLs" project.
+
+### [import-acl.py](import-acl.py)
+Part two: Read exported objects and rules and import them to a Check Port management as new shared layer (for easier integration in existing policies).
 
 ### [show-objects.py](show-objects.py)
-Takes search pattern as command line argument and displays matching objects from management. Kind of POC.
+Takes search pattern as command line argument and displays matching objects from management.
