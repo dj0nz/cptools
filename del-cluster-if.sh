@@ -3,7 +3,10 @@
 # VRRP CLuster Interface löschen mit Sosse und alles und scharf.
 # dj0Nz Mai 2024
 
-# Variablen
+# Variablen:
+# PROXYARP = Alle NAT-IPs, für die ein Proxy ARP Eintrag erstellt wurde (show arp proxy ...)
+# LOCALNET = Der Netzwerk-Teil des betreffenden Interfaces (Nur für /24-Netze!) 
+# VLAN und INTERFACE sind ja selbsterklärend...
 PROXYARP="192.168.3.113 192.168.3.116"
 LOCALNET="192.168.16"
 VLAN="16"
@@ -28,7 +31,7 @@ cat mcvr.cfg | sed 's/add/delete/' > mcvr.del
 cat interface.cfg | grep ipv4 | cut -d ' ' -f1-4 | sed 's/set/delete/' > interface.del
 cat vlan.cfg | sed 's/add/delete/' > vlan.del
 
-# Schritt 3: Konfigurationen entfernen
+# Schritt 3: Konfigurationen entfernen. Ginge auch mit einer For-Schleife.
 echo "Entferne Proxy ARP Eintraege..."
 clish -f proxyarp.del
 echo "Entferne statische Routen..."
