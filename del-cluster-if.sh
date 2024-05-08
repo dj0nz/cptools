@@ -4,7 +4,7 @@
 # dj0Nz Mai 2024
 
 # Variablen:
-# PROXYARP = Alle NAT-IPs, für die ein Proxy ARP Eintrag erstellt wurde (show arp proxy ...)
+# PROXYARP = Alle NAT-IPs, für die ein Proxy ARP Eintrag auf dem betreffenden Interface erstellt wurde (show arp proxy ...)
 # LOCALNET = Der Netzwerk-Teil des betreffenden Interfaces (Nur für /24-Netze!) 
 # VLAN und INTERFACE sind ja selbsterklärend...
 PROXYARP="192.168.3.113 192.168.3.116"
