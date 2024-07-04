@@ -26,6 +26,9 @@ Small script that runs on Check Point management server. Uses cprid_util to get 
 ### [logwork.sh](logwork.sh)
 The Logwork Orange (“Welly, welly, welly, welly, welly, welly, well. To what do I owe the extreme pleasure of this surprising visit?” - Anthony Burgess, A Clockwork Orange) script deletes old log files. Check Point version and retention time adjustable.
 
+### [miglog.sh](miglog.sh)
+Bash script to migrate x days of log files to migrated log/management server. Cron-Run at night or other "non-busy" hours.
+
 ### [topocalc.sh](topocalc.sh)
 Runs on management and checks whether cluster topology matches the routing table on the gateway.
 
