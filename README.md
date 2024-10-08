@@ -25,7 +25,7 @@ Small script that runs on Check Point management server. Uses cprid_util to get 
 
 ### [logwork.sh](logwork.sh)
 “Welly, welly, welly, welly, welly, welly, well. To what do I owe the extreme pleasure of this surprising visit?”    
--- Anthony Burgess, A Clockwork Orange
+-- Anthony Burgess, A Clockwork Orange  
 The Logwork Orange script deletes old log files. Check Point version and retention time adjustable.
 
 ### [miglog.sh](miglog.sh)
