@@ -20,6 +20,9 @@ Ever had to create a network group containing broadcast objects on a gateway wit
 ### [cpapi.py](cpapi.py)
 A basis set of web api calls to include in Python scripts as a module.
 
+### [conv_cisco_vlan.py](conv_cisco_vlan.py)
+A script to move vlan subinterfaces from a cisco switch/router to a Check Point cluster. It creates clish scripts to create the interfaces on cluster members and modified an existing cluster object creating the corresponding interface configuration.
+
 ### [grid-import.sh](grid-import.sh)
 Get networks from Infoblox Grid Containers and create corresponding network objects in Check Point database. Uses REST API calls. Early version of a bigger framework I wrote for a customer.
 
