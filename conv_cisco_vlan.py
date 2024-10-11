@@ -35,15 +35,15 @@ import cpapi
 import json
 
 # Variablen
-cp_mgmt = '192.168.102.161'
+cp_mgmt = '192.168.1.11'
 keyfile = '.cpapi.key'
 cluster_name = 'cluster'
 
 # Test-Daten!
 infile = 'test-if.txt'
 iface = 'eth1'
-dhcp_one = '192.168.100.8'
-dhcp_two = '192.168.100.9'
+dhcp_one = '192.168.10.8'
+dhcp_two = '192.168.10.9'
 
 # Initial-Werte
 iphelper = False
