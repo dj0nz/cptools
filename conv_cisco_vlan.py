@@ -128,6 +128,10 @@ for num in range(len(cisco_config)):
                         'ipv4-network-mask' : subnet_mask,
                         'interface-type' : 'cluster',
                         'topology' : 'internal',
+                        'topology-settings' : {
+                            'ip-address-behind-this-interface' : 'network defined by the interface ip and net mask',
+                            'interface-leads-to-dmz' : False
+                        },
                         'anti-spoofing' : 'true'
                     }
                 },
