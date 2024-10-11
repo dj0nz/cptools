@@ -17,6 +17,9 @@ Runs on Check Point management server and uses mgmt API and CPRID to change tls 
 ### [create_broadcast_objects.sh](create_broadcast_objects.sh)
 Ever had to create a network group containing broadcast objects on a gateway with 100+ VLAN interfaces? This is for you. ;)
 
+### [cpapi.py](cpapi.py)
+A basis set of web api calls to include in Python scripts as a module.
+
 ### [grid-import.sh](grid-import.sh)
 Get networks from Infoblox Grid Containers and create corresponding network objects in Check Point database. Uses REST API calls. Early version of a bigger framework I wrote for a customer.
 
