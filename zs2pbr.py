@@ -1,6 +1,9 @@
 #!/usr/bin/python3
 
-# Python program to create source routing command to source-route zscaler ipv4 hubs via specific gateway in checkpoint gaia
+# python program to create source routing command to source-route zscaler ipv4 hubs via specific gateway in checkpoint gaia
+#
+# purpose: let clients in your network have their surf traffic routed via a separate internet connection to get more 
+# bandwidth for your business critical applications.
 #
 # zscaler hubs: https://config.zscaler.com/zscaler.net/hubs
 # checkpoint admin guide: https://sc1.checkpoint.com/documents/R81.20/WebAdminGuides/EN/CP_R81.20_Gaia_Advanced_Routing_AdminGuide/Content/Topics-GARG/Policy-Based-Routing-Configuring-in-Gaia-Clish.htm
