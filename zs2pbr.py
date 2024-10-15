@@ -43,7 +43,7 @@ table_name = 'zscaler'
 # api requests url
 zs_api_url = 'https://api.config.zscaler.com/zscaler.net/hubs/cidr/json/recommended'
 
-# if proxy is needed. put it here, empty string if not
+# if proxy is needed to pull the hub list, put it here. empty ('') if no proxy.
 # see https://requests.readthedocs.io/en/latest/api/#id1
 http_proxy = 'http://192.168.10.10:8080'
 proxies = { 'http' : http_proxy, 'https' : http_proxy, 'ftp' : http_proxy }
