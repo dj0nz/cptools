@@ -8,6 +8,9 @@ Uses mgmt_cli to fetch names and IPs of gateways or cluster members from Check P
 ### [backup-gaia-mgmt.sh](backup-gaia-mgmt.sh)
 Enhanced management server backup. Does backup AND export, adds version info, gaia config and some directories to a tgz and copies the bundle using scp to a given backup server.
 
+### [backup-mgmt-pve.sh](backup-mgmt-pve.sh)
+Full-Backup Check Point management VM running on Proxmox VE using builtin utilities. 
+
 ### [ciphercheck.sh](ciphercheck.sh)
 Runs on a admin workstation and uses web api to query all gateway cluster members from management server, then openssl to check tls ciphers on all of them
 
