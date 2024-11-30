@@ -20,6 +20,9 @@
 # - Configure pubkey auth between PVE host and Check Point Management VM
 # - Backup storage must already be set up and usable
 #
+# Usage:
+# copy shell script to the PVE node the VM is running on and schedule with cron. Make sure, ssh is working.
+#
 # dj0Nz Nov 2024
 
 MGMT_VMID="501"
