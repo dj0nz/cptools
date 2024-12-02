@@ -65,13 +65,13 @@ if [[ $VM_STATE = "running" ]]; then
             VM_STATE=$(curl -X GET $OPTS -H "$HEADER" $BASE_URL/nodes/$PXNODE/qemu/$VMID/status/current|jq -r '.data.status')
             CURR_TIME=$(date +%s)
             # Stop this script completely if shutdown fails.
-			if [[ $CURR_TIME -gt $STOP_TIME ]]; then
+	    if [[ $CURR_TIME -gt $STOP_TIME ]]; then
                 echo "VM did not stop in time. Exiting."
                 exit 1
             fi
         done
         # Needed later to determine if VM has to be restarted
-		WAS_ON="Yes"
+	WAS_ON="Yes"
     else
         # Try to restart Check Point processes if stop command unsuccessful to restore functionality.
         # Rebooting the machine would be another option in this case...
@@ -96,11 +96,11 @@ STOP_TIME=$(expr $(date +%s) + $BACKUP_TIMEOUT)
 while [ $DUMP_STATE = "running" ]; do
     CURR_TIME=$(date +%s)
     # Refresh job status
-	DUMP_STATE=$(curl -X GET $OPTS -H "$HEADER" $BASE_URL/nodes/$PXNODE/tasks/$DUMP_UPID/status|jq -r .data.status)
+    DUMP_STATE=$(curl -X GET $OPTS -H "$HEADER" $BASE_URL/nodes/$PXNODE/tasks/$DUMP_UPID/status|jq -r .data.status)
     # Delay to prevent kind of "DoS Attacks"
-	sleep 3
+    sleep 3
     # Just exit with error if backup job does not finish in time
-	if [[ $CURR_TIME -gt $STOP_TIME ]]; then
+    if [[ $CURR_TIME -gt $STOP_TIME ]]; then
         echo "Backup did not finish in time. Exiting." >> $LOGFILE 2>&1
         exit 1
     fi
