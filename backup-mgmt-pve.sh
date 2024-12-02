@@ -2,12 +2,13 @@
 
 # Backup Check Point Management VM
 #
-# This script stops a Check Point Management VM running on a given Proxmox VE
-# node, creates a full backup using vzdump and restarts the VM afterwards.
+# This script stops a Check Point Management VM running on a given Proxmox VE node, creates a full backup using vzdump and restarts the VM afterwards.
+# Configure it to run at your preferred backup schedule on a Linux machine that has both ssh access to the Check Point Management and https (Port 8006/tcp) 
+# access the the Proxmox cluster member running the machine.
 #
 # Requirements:
-# - A linux machine that is able to reach the Check Point Management by ssh and the
-#   Proxmox VE cluster nodes by https using 8006/tcp
+# - A linux machine that is able to reach the Check Point Management via ssh and the
+#   Proxmox VE cluster nodes via https using 8006/tcp
 # - curl and jq installed on that machine
 # - A working SSH pubkey login to the Check Point Management VM (implies admin rights)
 # - A working PVE API Token with appropriate rights to start/stop the Check Point
@@ -45,8 +46,8 @@ TOKEN=$(cat $TOKENFILE)
 # BASE URL for API requests
 BASE_URL=https://$PXNODE:8006/api2/json
 
-# curl header and options
-OPTS="--silent --insecure"
+# curl header and options - add "--insecure" in opts if using selfsigned certs
+OPTS="--silent"
 HEADER="Authorization: PVEAPIToken=$TOKEN"
 
 # Get Management VM status
