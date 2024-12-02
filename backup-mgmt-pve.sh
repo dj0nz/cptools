@@ -40,7 +40,7 @@ KEEP="3"
 LOGFILE=backup-$MGMT_NAME.log
 
 # Read API token from file
-export TOKEN=$(cat $TOKENFILE)
+TOKEN=$(cat $TOKENFILE)
 
 # BASE URL for API requests
 BASE_URL=https://$PXNODE:8006/api2/json
