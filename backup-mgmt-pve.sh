@@ -29,29 +29,34 @@
 #
 # dj0Nz Nov 2024
 
-TOKENFILE=.pvetoken
-PXNODE="pxnode01"
-MGMT_NAME="cpr82mgmt"
+TOKENFILE=.token
+PXNODE="pxnode"
+MGMT_NAME="mgmt"
 VMID="404"
 CPSTOP_TIMEOUT="5m"
 SHUTDOWN_TIMEOUT=300
 BACKUP_TIMEOUT=3600
 STORAGE="pbs"
 KEEP="3"
-LOGFILE=backup-$MGMT_NAME.log
+LOGFILE=/var/log/backup-$MGMT_NAME.log
 
 # Redirect all output to log file, mark job start
 exec >> $LOGFILE 2>&1
 echo "$(date) - Check Point Management Backup Start"
 
 # Read API token from file
-TOKEN=$(cat $TOKENFILE)
+if [[ -f $TOKENFILE ]]; then
+    TOKEN=$(cat $TOKENFILE)
+else
+    echo "No token file found."
+    exit 1
+fi
 
 # BASE URL for API requests
 BASE_URL=https://$PXNODE:8006/api2/json
 
 # curl header and options - add "--insecure" in opts if using selfsigned certs
-OPTS="--silent"
+OPTS="--silent --insecure"
 HEADER="Authorization: PVEAPIToken=$TOKEN"
 
 # Get Management VM status
@@ -59,10 +64,12 @@ VM_STATE=$(curl -X GET $OPTS -H "$HEADER" $BASE_URL/nodes/$PXNODE/qemu/$VMID/sta
 
 # Process next block only if VM is on
 if [[ $VM_STATE = "running" ]]; then
+    echo "$(date) - Issuing cpstop"
     # issue cpstop and wait for "SVN Foundation stopped" or (preconfigured) 5 minutes timeout whatever comes first
     STOP_RESULT=$(timeout $CPSTOP_TIMEOUT ssh -q admin@$MGMT_NAME "cpstop" 2>&1 | grep "SVN Foundation stopped")
     # Shutdown VM if cpstop successful
     if [[ $STOP_RESULT = "SVN Foundation stopped" ]]; then
+        echo "$(date) - Shutting down VM $VMID"
         VM_SHUTDOWN=$(curl -X POST $OPTS -H "$HEADER" --data timeout=$SHUTDOWN_TIMEOUT $BASE_URL/nodes/$PXNODE/qemu/$VMID/status/shutdown)
         STOP_TIME=$(expr $(date +%s) + $SHUTDOWN_TIMEOUT)
         # Wait until shutdown finished or exit if timer expired
@@ -92,8 +99,11 @@ fi
 # If we got here, machine did either shutdown correctly or was already off
 # Define backup request data
 URL_DATA="--data vmid=$VMID --data storage=$STORAGE --data-urlencode notes-template="{{guestname}}" --data-urlencode prune-backups="keep-last=$KEEP""
+
 # Start backup request with preconfigured body, returns only the task "UPID"
+echo "$(date) - Starting backup job"
 DUMP_UPID=$(curl -X POST $OPTS -H "$HEADER" $URL_DATA $BASE_URL/nodes/$PXNODE/vzdump|jq -r .data)
+
 # Use UPID to query task state, should be "running" initially...
 DUMP_STATE=$(curl -X GET $OPTS -H "$HEADER" $BASE_URL/nodes/$PXNODE/tasks/$DUMP_UPID/status|jq -r .data.status)
 # Define time when backup job should be considered as "timed out"
@@ -112,6 +122,7 @@ while [ $DUMP_STATE = "running" ]; do
 done
 # Restart VM if it has been on before
 if [[ $WAS_ON = "Yes" ]]; then
+    echo "$(date) - Restating VM $VMID"
     VM_START=$(curl -X POST $OPTS -H "$HEADER" $BASE_URL/nodes/$PXNODE/qemu/$VMID/status/start)
 fi
 # Mark backup job end
