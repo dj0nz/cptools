@@ -40,6 +40,10 @@ STORAGE="pbs"
 KEEP="3"
 LOGFILE=backup-$MGMT_NAME.log
 
+# Redirect all output to log file, mark job start
+exec >> $LOGFILE 2>&1
+echo "$(date) - Check Point Management Backup Start"
+
 # Read API token from file
 TOKEN=$(cat $TOKENFILE)
 
@@ -76,8 +80,8 @@ if [[ $VM_STATE = "running" ]]; then
     else
         # Try to restart Check Point processes if stop command unsuccessful to restore functionality.
         # Rebooting the machine would be another option in this case...
-        echo "cpstop command failed. Restarting Check Point processes." >> $LOGFILE 2>&1
-        ssh -q admin@$MGMT_NAME "cpstart" >> $LOGFILE 2>&1
+        echo "cpstop command failed. Restarting Check Point processes."
+        ssh -q admin@$MGMT_NAME "cpstart"
         exit 1
     fi
 else
@@ -98,11 +102,11 @@ while [ $DUMP_STATE = "running" ]; do
     CURR_TIME=$(date +%s)
     # Refresh job status
     DUMP_STATE=$(curl -X GET $OPTS -H "$HEADER" $BASE_URL/nodes/$PXNODE/tasks/$DUMP_UPID/status|jq -r .data.status)
-    # Delay to prevent kind of "DoS Attacks"
+    # Delay to prevent this script from asking too often
     sleep 3
     # Just exit with error if backup job does not finish in time
     if [[ $CURR_TIME -gt $STOP_TIME ]]; then
-        echo "Backup did not finish in time. Exiting." >> $LOGFILE 2>&1
+        echo "Backup did not finish in time. Exiting."
         exit 1
     fi
 done
@@ -110,3 +114,5 @@ done
 if [[ $WAS_ON = "Yes" ]]; then
     VM_START=$(curl -X POST $OPTS -H "$HEADER" $BASE_URL/nodes/$PXNODE/qemu/$VMID/status/start)
 fi
+# Mark backup job end
+echo "$(date) - Check Point Management Backup End"
