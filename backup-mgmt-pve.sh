@@ -108,6 +108,7 @@ DUMP_UPID=$(curl -X POST $OPTS -H "$HEADER" $URL_DATA $BASE_URL/nodes/$PXNODE/vz
 DUMP_STATE=$(curl -X GET $OPTS -H "$HEADER" $BASE_URL/nodes/$PXNODE/tasks/$DUMP_UPID/status|jq -r .data.status)
 # Define time when backup job should be considered as "timed out"
 STOP_TIME=$(expr $(date +%s) + $BACKUP_TIMEOUT)
+
 while [ $DUMP_STATE = "running" ]; do
     CURR_TIME=$(date +%s)
     # Refresh job status
@@ -120,6 +121,7 @@ while [ $DUMP_STATE = "running" ]; do
         exit 1
     fi
 done
+
 # Restart VM if it has been on before
 if [[ $WAS_ON = "Yes" ]]; then
     echo "$(date) - Restating VM $VMID"
