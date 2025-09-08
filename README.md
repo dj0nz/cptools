@@ -1,6 +1,6 @@
-## My private Check Point knowledge base ##
+## Script I use with Check Point ##
 
-Scripts I used at work. I ask for your indulgence with the Python scripts, I'm not a programmer and still a first grade student with Python...
+A collection of scripts and (even!) programs I use often when working with Check Point products. 
 
 ### [add-gw-hostnames.sh](add-gw-hostnames.sh)
 Uses mgmt_cli to fetch names and IPs of gateways or cluster members from Check Point database and creates host name entries. 
