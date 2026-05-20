@@ -13,10 +13,10 @@ echo ""
 echo "Now creating missing host name entries."
 echo ""
 
+ALL_HOSTS_CONFIG=$(clish -c "show configuration host")
 for GW in "${GW_LIST[@]}"; do
    IFS=',' read -r GW_NAME GW_IP <<< "$GW"
-   HOSTS_NAME=$(clish -c "show configuration host" | grep $GW_NAME | awk '{print $4}')
-   HOSTS_IP=$(clish -c "show configuration host" | grep $GW_NAME | awk '{print $6}')
+   read -r HOSTS_NAME HOSTS_IP <<< $(echo "$ALL_HOSTS_CONFIG" | awk -v gw="$GW_NAME" '$0 ~ gw {print $4, $6}')
    if [[ "$HOSTS_NAME" = "$GW_NAME" ]]; then
       if [[ "$HOSTS_IP" = "$GW_IP" ]]; then
          printf "%-19s %s\n" "$GW_NAME: " "hosts entry exists."
