@@ -4,7 +4,7 @@
 #
 # This script stops a Check Point Management VM running on a given Proxmox VE node, creates a full backup using vzdump and restarts the VM afterwards.
 # Configure it to run at your preferred backup schedule on a Linux machine that has both ssh access to the Check Point Management and https (Port 8006/tcp)
-# access the the Proxmox cluster member running the machine.
+# access to the Proxmox cluster member running the machine.
 #
 # Requirements:
 # - A linux machine that is able to reach the Check Point Management via ssh and the
@@ -27,6 +27,11 @@
 # - STORAGE:          Storage type for the dump files. Check with "pvesm list" or ask your PVE admin
 # - KEEP:             Number of backups to retain
 # - LOGFILE:          An optional log file. You may also decide to devnull all messages and rely on your network monitoring. it's up to you.
+#
+# Config file syntax example:
+# PXNODE="pxnode1"
+# MGMT_NAME="mgmt1"
+# VMID="404"
 #
 # dj0Nz Nov 2024 / reviewed Jun 2026
 
