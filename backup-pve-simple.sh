@@ -14,9 +14,9 @@
 #
 # dj0Nz jun 2026 
 
-VMID="605"
+VMID="404"
 STOPWAIT="5"
-STORAGE="cifs"
+STORAGE="pbs"
 KEEP="3"
 LOGFILE="/var/log/backup-vm$VMID.log"
 
