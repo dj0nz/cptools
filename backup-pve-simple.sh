@@ -28,7 +28,7 @@ LOCKFILE=/var/lock/backup-vm$VMID.lock
 exec 200>"$LOCKFILE"
 flock -n 200 || { echo "$(date) - Another instance running. Exiting."; exit 1; }
 
-# do a vzdump backup in stop mode
+# do a vzdump backup in stop mode and remove fd on lock file when finished
 echo "$(date) - Backup Start"
 vzdump "$VMID" --storage "$STORAGE" --mode stop --stopwait "$STOPWAIT" --notes-template '{{guestname}}' --prune-backups "keep-last=$KEEP" 200>&- || BACKUP_FAILED="Yes"
 
