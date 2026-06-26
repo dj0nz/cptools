@@ -30,8 +30,11 @@
 # 'set -e' is omitted on purpose: cprid_util returns non-zero on benign conditions and the arithmetic counters would abort the run.
 set -uo pipefail
 
+# Check Point's own profile scripts are not 'set -u' clean (they reference unset vars like OLD_FWDIR), so disable nounset just while sourcing them.
+set +u
 # shellcheck source=/dev/null
 . /etc/profile.d/CP.sh
+set -u
 
 # CPRID port and binary
 # See https://www.compuquip.com/blog/daemon-firewall-system for examples
@@ -61,7 +64,7 @@ GW_LIST=($(mgmt_cli -r true show gateways-and-servers limit 500 -f json | jq -r 
 # Query installed DA build on a gateway. Echoes build number or empty string.
 get_da_version() {
     local GW="$1"
-    "$CPRID" -server "$GW" rexec -rcmd da_cli da_status 2>/dev/null | jq -r '.DABuildNumber' 2>/dev/null
+    "$CPRID" -server "$GW" -verbose rexec -rcmd da_cli da_status 2>/dev/null | jq -r '.DABuildNumber' 2>/dev/null
 }
 
 # The update deployment agent function, essentially the heart of the program
