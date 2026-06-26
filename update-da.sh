@@ -14,8 +14,15 @@
 # - Adjust $TARGET_VERSION and $AGENT_FILE
 #
 # Additional requirements:
-# This script ONLY works correctly, if the management server knows all managed gateways by
-# name, which, unfortunately, is not a given. See https://github.com/dj0nz/cptools/blob/main/add-gw-hostnames.sh 
+# - This script ONLY works correctly, if the management server knows all managed gateways by
+#   name, which, unfortunately, is not a given. See https://github.com/dj0nz/cptools/blob/main/add-gw-hostnames.sh 
+# 
+# A note on script runtime:
+# Inactivity timeout should be set to cover long script runtime if you have a large number of gateways. The script runs 
+# about 30 seconds per machine, at least. More robust: you may deal with shell timeouts or connection loss with nohup:
+# nohup update-da.sh > /var/log/tmp/update-da.log 2>&1 < /dev/null &  
+# You may then monitor progress with a "tail -f /var/log/tmp/update-da.log", but the script itself will run until terminated.
+# See https://support.checkpoint.com/results/sk/sk95447, but ignore method 1 and the "kill PID" section, that's fake news ;)
 
 # mgo jun 2026
 
